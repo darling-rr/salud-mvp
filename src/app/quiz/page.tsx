@@ -669,10 +669,9 @@ export default function QuizPage() {
               </button>
             )}
           </div>
-
         </div>  {/* cierra p-5 space-y-4 */}
       </div>    {/* cierra Card principal */}
-        /* cierra max-w-xl mx-auto p-6 */
+      
   </main>
 );
 }
