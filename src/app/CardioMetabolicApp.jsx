@@ -34,9 +34,6 @@ const alcoholCategory = ({ drinksPerWeek, binge, sex }) => {
   const n = drinksPerWeek ?? 0;
   const isBinge = binge === "yes";
 
-  // Reglas simples (orientativas, no clínicas):
-  // Alto si atracón, o si excede umbral semanal.
-  // Moderado dentro del umbral.
   const moderateLimit = sex === "F" ? 7 : 14;
 
   if (isBinge) return "high";
@@ -76,42 +73,27 @@ function Pill({ children, onClick, active = false }) {
 }
 
 function Modal({ open, title, onClose, children }) {
-  const closeBtnRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    // focus al abrir
-    closeBtnRef.current?.focus();
-
-    // cerrar con ESC
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
-
   if (!open) return null;
 
+  const stop = (e) => e.stopPropagation();
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      {/* Contenido: stopPropagation evita cierres accidentales */}
-      <div
-        className="relative w-full max-w-xl rounded-2xl bg-white border shadow-lg p-5"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30" />
+      <div className="relative w-full max-w-xl rounded-2xl bg-white border shadow-lg p-5" onClick={stop}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-lg font-semibold">{title}</div>
           </div>
           <button
-            ref={closeBtnRef}
             type="button"
             onClick={onClose}
             className="rounded-xl border px-3 py-1 text-sm hover:bg-gray-50"
@@ -212,9 +194,10 @@ export default function CardioMetabolicApp() {
   // Modal
   const [openHow, setOpenHow] = useState(false);
 
-  // Seguimiento simple (localStorage)
+  // Seguimiento simple (localStorage) — guardar SOLO al llegar a resultado
   const [last, setLast] = useState(null);
   const [history, setHistory] = useState([]);
+  const savedForThisResultRef = useRef(false);
 
   // Demografía
   const [age, setAge] = useState("");
@@ -224,6 +207,10 @@ export default function CardioMetabolicApp() {
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState(""); // cm o metros (auto)
   const [waist, setWaist] = useState(""); // cm (opcional)
+
+  // Presión arterial (opcional)
+  const [bpSys, setBpSys] = useState(""); // sistólica mmHg
+  const [bpDia, setBpDia] = useState(""); // diastólica mmHg
 
   // Labs (opcionales)
   const [glucose, setGlucose] = useState(""); // mg/dL
@@ -244,7 +231,7 @@ export default function CardioMetabolicApp() {
 
   const [smoking, setSmoking] = useState("no"); // no | yes
 
-  // Alcohol (mejorado): tragos/semana + binge
+  // Alcohol
   const [alcoholDrinksPerWeek, setAlcoholDrinksPerWeek] = useState(""); // número
   const [alcoholBinge, setAlcoholBinge] = useState("no"); // no | yes
 
@@ -269,14 +256,14 @@ export default function CardioMetabolicApp() {
   const topRef = useRef(null);
   const summaryRef = useRef(null);
 
-  // Evita guardar múltiples veces por visita a Resultado
-  const savedForThisResultRef = useRef(false);
-
   const computed = useMemo(() => {
     const A = toNum(age);
     const W = toNum(weight);
     const Hcm = toHeightCm(height);
     const WC = toNum(waist);
+
+    const SYS = toNum(bpSys);
+    const DIA = toNum(bpDia);
 
     const G = toNum(glucose);
     const A1c = toNum(hba1c);
@@ -304,13 +291,11 @@ export default function CardioMetabolicApp() {
 
     let score = 0;
 
-    // Listas separadas
     const risksMod = [];
     const risksNoMod = [];
     const dx = [];
     const redFlags = [];
 
-    // Contribuciones para "drivers" reales
     const contrib = []; // {type,label,points}
     const add = (type, label, points) => {
       if (!points) return;
@@ -368,6 +353,27 @@ export default function CardioMetabolicApp() {
         score += 8;
         risksMod.push("Circunferencia de cintura en rango de alerta");
         add("mod", "Circunferencia de cintura en rango de alerta", 8);
+      }
+    }
+
+    // Presión arterial (opcional)
+    const hasBP = SYS !== null && DIA !== null;
+    if (hasBP) {
+      // Banderas rojas por PA muy alta (orientativo)
+      if (SYS >= 180 || DIA >= 120) {
+        redFlags.push(
+          "Presión arterial muy alta (≥180/120): si se acompaña de dolor de pecho, falta de aire, visión borrosa, debilidad, confusión o cefalea intensa → URGENCIAS."
+        );
+      }
+
+      if (SYS >= 140 || DIA >= 90) {
+        score += 14;
+        risksMod.push("Presión arterial alta (confirmar con medición repetida)");
+        add("mod", "Presión arterial alta (confirmar)", 14);
+      } else if (SYS >= 130 || DIA >= 85) {
+        score += 8;
+        risksMod.push("Presión arterial en rango de alerta");
+        add("mod", "Presión arterial en rango de alerta", 8);
       }
     }
 
@@ -441,7 +447,7 @@ export default function CardioMetabolicApp() {
       add("mod", "Tabaquismo", 14);
     }
 
-    // Alcohol (tragos/sem + binge)
+    // Alcohol
     const drinksW = toNum(alcoholDrinksPerWeek);
     const alcCat = alcoholCategory({ drinksPerWeek: drinksW ?? 0, binge: alcoholBinge, sex });
 
@@ -560,12 +566,14 @@ export default function CardioMetabolicApp() {
     if (score >= 55) level = "Alto";
     else if (score >= 30) level = "Moderado";
 
-    // Validaciones suaves (no bloquean)
+    // Validaciones suaves
     const warnings = {};
     if (A !== null && (A < 12 || A > 110)) warnings.age = "Edad fuera de rango típico (12–110).";
     if (Hcm !== null && (Hcm < 120 || Hcm > 220)) warnings.height = "Talla fuera de rango típico (120–220 cm).";
     if (W !== null && (W < 30 || W > 250)) warnings.weight = "Peso fuera de rango típico (30–250 kg).";
     if (WC !== null && (WC < 40 || WC > 160)) warnings.waist = "Cintura fuera de rango típico (40–160 cm).";
+    if (SYS !== null && (SYS < 70 || SYS > 250)) warnings.bpSys = "Sistólica fuera de rango típico (70–250 mmHg).";
+    if (DIA !== null && (DIA < 40 || DIA > 150)) warnings.bpDia = "Diastólica fuera de rango típico (40–150 mmHg).";
     if (G !== null && (G < 40 || G > 600)) warnings.glucose = "Glicemia fuera de rango típico (40–600 mg/dL).";
     if (A1c !== null && (A1c < 3 || A1c > 20)) warnings.hba1c = "HbA1c fuera de rango típico (3–20%).";
     if (CT !== null && (CT < 80 || CT > 500)) warnings.chol = "Colesterol total fuera de rango típico (80–500 mg/dL).";
@@ -586,8 +594,14 @@ export default function CardioMetabolicApp() {
         binge: alcoholBinge,
         category: alcCat,
       },
+      bp: {
+        sys: SYS,
+        dia: DIA,
+        hasBP,
+      },
       missing: {
         waist: WC === null,
+        bp: !hasBP, // opcional, pero sirve para “afinar”
         glucose: G === null,
         hba1c: A1c === null,
         cholTotal: CT === null,
@@ -599,6 +613,8 @@ export default function CardioMetabolicApp() {
     weight,
     height,
     waist,
+    bpSys,
+    bpDia,
     glucose,
     hba1c,
     cholTotal,
@@ -628,6 +644,16 @@ export default function CardioMetabolicApp() {
     const has = (txt) => computed.risksMod.some((r) => r.toLowerCase().includes(txt.toLowerCase()));
     const out = [];
 
+    if (has("presión arterial")) {
+      out.push({
+        title: "Bajar/Controlar presión arterial",
+        tips: [
+          "Si puedes: 2–3 mediciones en días distintos (reposo 5 min)",
+          "Reduce sal y ultraprocesados; más potasio (fruta/verdura/legumbres)",
+          "Actividad: caminar + fuerza 2x/sem; limita alcohol",
+        ],
+      });
+    }
     if (has("imc")) {
       out.push({
         title: "Bajar 5–10% del peso (si aplica)",
@@ -695,7 +721,7 @@ export default function CardioMetabolicApp() {
 
   const [openTipIndex, setOpenTipIndex] = useState(null);
 
-  // Drivers reales: top 3 por puntos (contrib)
+  // Drivers reales: top 3 por puntos
   const drivers = useMemo(() => {
     const top = [...(computed.contrib ?? [])].sort((a, b) => b.points - a.points).slice(0, 3);
     return top.map((x) => x.label);
@@ -752,14 +778,22 @@ export default function CardioMetabolicApp() {
       });
     }
 
-    if (hasHTN === "yes") {
+    // Control HTA por dx o PA elevada
+    const bpHigh = computed.bp?.hasBP && (computed.bp.sys >= 140 || computed.bp.dia >= 90);
+    const bpAlert = computed.bp?.hasBP && !bpHigh && (computed.bp.sys >= 130 || computed.bp.dia >= 85);
+
+    if (hasHTN === "yes" || bpHigh || bpAlert) {
       items.push({
         key: "HTA",
-        title: "Control HTA",
-        detail: "Control periódico, medición de PA y adherencia a tratamiento según APS.",
-        ask: "Qué pedir: “control cardiovascular / HTA” (programa o box médico/enfermería).",
+        title: "Control de presión arterial (APS)",
+        detail:
+          hasHTN === "yes"
+            ? "Seguimiento periódico, medición de PA y adherencia a tratamiento según APS."
+            : "Confirmar mediciones (ideal 2–3 en días distintos) y definir necesidad de control/plan.",
+        ask: "Qué pedir: “control de presión arterial / cardiovascular” (box enfermería o médico según CESFAM).",
       });
     }
+
     if (hasDM === "yes") {
       items.push({
         key: "DM",
@@ -812,7 +846,7 @@ export default function CardioMetabolicApp() {
     }
 
     return items;
-  }, [computed.A, computed.level, sex, hasHTN, hasDM, hasDyslip, thyroidDx, hasCVD]);
+  }, [computed.A, computed.level, computed.bp, sex, hasHTN, hasDM, hasDyslip, thyroidDx, hasCVD]);
 
   const referencesText = useMemo(() => {
     const keys = new Set(suggestedControls.map((x) => x.key));
@@ -829,26 +863,26 @@ export default function CardioMetabolicApp() {
     const m = computed.missing;
     const out = [];
     if (m.waist) out.push({ label: "Cintura", goStep: 0 });
+    if (m.bp) out.push({ label: "Presión arterial", goStep: 0 });
     if (m.glucose) out.push({ label: "Glicemia", goStep: 0 });
     if (m.hba1c) out.push({ label: "HbA1c", goStep: 0 });
     if (m.cholTotal) out.push({ label: "Colesterol total", goStep: 0 });
     return out;
   }, [computed.missing]);
 
-  // Seguimiento: cargar (solo al iniciar)
+  // Seguimiento: cargar historial
   useEffect(() => {
     try {
       const raw = localStorage.getItem("cm_last");
       if (raw) setLast(JSON.parse(raw));
     } catch {}
-
     try {
       const rawH = localStorage.getItem("cm_history");
       if (rawH) setHistory(JSON.parse(rawH));
     } catch {}
   }, []);
 
-  // Seguimiento: guardar SOLO al llegar a Resultado
+  // Guardar SOLO al llegar a “Resultado”
   useEffect(() => {
     if (step !== 3) {
       savedForThisResultRef.current = false;
@@ -895,6 +929,12 @@ export default function CardioMetabolicApp() {
     ];
     if (drivers?.length) lines.push(`Principales factores detectados: ${drivers.join(" · ")}`);
 
+    if (computed.bp?.hasBP) {
+      lines.push(`Presión arterial: ${computed.bp.sys}/${computed.bp.dia} mmHg`);
+    } else {
+      lines.push(`Presión arterial: no informada`);
+    }
+
     const alcTxt = `Alcohol: ${alcoholLabel(computed.alcohol?.category)} (${computed.alcohol?.drinksPerWeek ?? 0} tragos/sem, atracón: ${
       computed.alcohol?.binge === "yes" ? "sí" : "no"
     })`;
@@ -915,7 +955,6 @@ export default function CardioMetabolicApp() {
         return;
       }
     } catch {}
-
     try {
       await navigator.clipboard.writeText(text);
       alert("Resumen copiado al portapapeles ✅");
@@ -960,14 +999,9 @@ export default function CardioMetabolicApp() {
 
   // Estilo nivel
   const levelChip = useMemo(() => {
-    return computed.level === "Bajo" ? "Prevención" : computed.level === "Moderado" ? "A mejorar" : "Prioridad";
+    const txt = computed.level === "Bajo" ? "Prevención" : computed.level === "Moderado" ? "A mejorar" : "Prioridad";
+    return txt;
   }, [computed.level]);
-
-  // Badge dinámico
-  const heroBadgeText = useMemo(() => {
-    if (!last?.date) return "Sin registro aún";
-    return `Último: ${new Date(last.date).toLocaleDateString()} · ${last.score}/100`;
-  }, [last]);
 
   return (
     <main ref={topRef} className="min-h-screen bg-gray-50 p-4">
@@ -981,7 +1015,7 @@ export default function CardioMetabolicApp() {
                 En 2 minutos identifica tus principales puntos a mejorar y qué controles pedir en APS.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Badge>{heroBadgeText}</Badge>
+                <Badge>Sin registro de datos</Badge>
                 <Badge>Calculado en tu navegador</Badge>
                 <button
                   type="button"
@@ -1121,6 +1155,56 @@ export default function CardioMetabolicApp() {
                 hint="Aumenta precisión del resultado."
                 warning={computed.warnings?.waist}
               />
+
+              {/* Presión arterial (opcional) */}
+              <div className="space-y-2 md:col-span-2">
+                <div className="text-sm font-medium">Presión arterial (opcional)</div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <NumericInput
+                    id="bpSys"
+                    label="Sistólica"
+                    value={bpSys}
+                    onChange={setBpSys}
+                    placeholder="Ej: 120"
+                    suffix="mmHg"
+                    hint="Ideal: medir en reposo (5 min), sentado/a."
+                    warning={computed.warnings?.bpSys}
+                    quickPills={[
+                      { label: "110", value: 110 },
+                      { label: "120", value: 120 },
+                      { label: "130", value: 130 },
+                      { label: "140", value: 140 },
+                    ]}
+                  />
+                  <NumericInput
+                    id="bpDia"
+                    label="Diastólica"
+                    value={bpDia}
+                    onChange={setBpDia}
+                    placeholder="Ej: 80"
+                    suffix="mmHg"
+                    hint="Si no la sabes, puedes dejarlo en blanco (no afecta)."
+                    warning={computed.warnings?.bpDia}
+                    quickPills={[
+                      { label: "70", value: 70 },
+                      { label: "80", value: 80 },
+                      { label: "85", value: 85 },
+                      { label: "90", value: 90 },
+                    ]}
+                  />
+                </div>
+
+                {computed.bp?.hasBP ? (
+                  <div className="text-xs text-gray-600">
+                    Ingresado:{" "}
+                    <span className="font-semibold">
+                      {computed.bp.sys}/{computed.bp.dia} mmHg
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-600">Si no la conoces, déjalo en blanco. El score funciona igual.</div>
+                )}
+              </div>
 
               <NumericInput
                 id="glucose"
@@ -1498,6 +1582,18 @@ export default function CardioMetabolicApp() {
                       Nivel: <span className="font-semibold">{computed.level}</span>
                     </div>
                   </div>
+
+                  {computed.bp?.hasBP ? (
+                    <div className="mt-2 text-xs text-gray-600">
+                      PA informada:{" "}
+                      <span className="font-semibold">
+                        {computed.bp.sys}/{computed.bp.dia} mmHg
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-xs text-gray-600">PA: no informada</div>
+                  )}
+
                   <div className="mt-2 text-xs text-gray-600">
                     Alcohol estimado:{" "}
                     <span className="font-semibold">
@@ -1681,11 +1777,12 @@ export default function CardioMetabolicApp() {
         <Modal open={openHow} title="¿Cómo se calcula este resultado?" onClose={() => setOpenHow(false)}>
           <p>
             Este MVP suma puntos por <span className="font-semibold">factores de riesgo</span> (por ejemplo IMC alto,
-            baja actividad, tabaco, glicemia/HbA1c elevadas, etc.). A mayor puntaje, mayor prioridad de mejora y control.
+            cintura alta, presión arterial elevada, baja actividad, tabaco, glicemia/HbA1c elevadas, etc.). A mayor puntaje,
+            mayor prioridad de mejora y control.
           </p>
           <p>
-            <span className="font-semibold">Opcionales</span> (cintura y exámenes): si no los ingresas, no se penaliza;
-            solo se vuelve menos preciso.
+            <span className="font-semibold">Opcionales</span> (cintura, presión arterial y exámenes): si no los ingresas, no
+            se penaliza; solo se vuelve menos preciso.
           </p>
           <p>
             <span className="font-semibold">Importante:</span> no es un diagnóstico. Si tienes enfermedad crónica o síntomas
@@ -1696,4 +1793,3 @@ export default function CardioMetabolicApp() {
     </main>
   );
 }
-
