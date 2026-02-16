@@ -222,6 +222,10 @@ export default function CardioMetabolicApp() {
   const [sugaryDrinksPerWeek, setSugaryDrinksPerWeek] = useState(""); // veces/sem
   const [proteinServingsPerDay, setProteinServingsPerDay] = useState(""); // porciones/día
 
+  // NUEVOS: sal añadida y bebidas energéticas
+  const [extraSalt, setExtraSalt] = useState("never"); // never | sometimes | often
+  const [energyDrinksPerWeek, setEnergyDrinksPerWeek] = useState(""); // veces/sem
+
   // Frituras
   const [friedPeriod, setFriedPeriod] = useState("week"); // week | month
   const [friedCount, setFriedCount] = useState(""); // veces/periodo
@@ -252,7 +256,7 @@ export default function CardioMetabolicApp() {
   const [easyFatigue, setEasyFatigue] = useState("no"); // no|yes
   const [stressFreq, setStressFreq] = useState("sometimes"); // never|sometimes|often
 
-  // Refs para scroll (wizard)
+  // Refs para scroll
   const topRef = useRef(null);
   const summaryRef = useRef(null);
 
@@ -272,6 +276,8 @@ export default function CardioMetabolicApp() {
     const breads = toNum(breadsPerDay);
     const sugary = toNum(sugaryDrinksPerWeek);
     const protein = toNum(proteinServingsPerDay);
+
+    const energy = toNum(energyDrinksPerWeek);
 
     const sleep = toNum(sleepHours);
     const act = toNum(activityMinutesWeek);
@@ -359,7 +365,6 @@ export default function CardioMetabolicApp() {
     // Presión arterial (opcional)
     const hasBP = SYS !== null && DIA !== null;
     if (hasBP) {
-      // Banderas rojas por PA muy alta (orientativo)
       if (SYS >= 180 || DIA >= 120) {
         redFlags.push(
           "Presión arterial muy alta (≥180/120): si se acompaña de dolor de pecho, falta de aire, visión borrosa, debilidad, confusión o cefalea intensa → URGENCIAS."
@@ -374,6 +379,28 @@ export default function CardioMetabolicApp() {
         score += 8;
         risksMod.push("Presión arterial en rango de alerta");
         add("mod", "Presión arterial en rango de alerta", 8);
+      }
+    }
+
+    // --- NUEVO: SAL AÑADIDA ---
+    if (extraSalt === "often") {
+      score += 4;
+      risksMod.push("Añade sal extra frecuentemente");
+      add("mod", "Añade sal extra frecuentemente", 4);
+    } else if (extraSalt === "sometimes") {
+      score += 2;
+      add("mod", "Añade sal extra ocasionalmente", 2);
+    }
+
+    // --- NUEVO: BEBIDAS ENERGÉTICAS ---
+    if (energy !== null) {
+      if (energy >= 5) {
+        score += 5;
+        risksMod.push("Consumo alto de bebidas energéticas");
+        add("mod", "Consumo alto de bebidas energéticas", 5);
+      } else if (energy >= 2) {
+        score += 2;
+        add("mod", "Consumo moderado de bebidas energéticas", 2);
       }
     }
 
@@ -577,6 +604,7 @@ export default function CardioMetabolicApp() {
     if (G !== null && (G < 40 || G > 600)) warnings.glucose = "Glicemia fuera de rango típico (40–600 mg/dL).";
     if (A1c !== null && (A1c < 3 || A1c > 20)) warnings.hba1c = "HbA1c fuera de rango típico (3–20%).";
     if (CT !== null && (CT < 80 || CT > 500)) warnings.chol = "Colesterol total fuera de rango típico (80–500 mg/dL).";
+    if (energy !== null && (energy < 0 || energy > 50)) warnings.energy = "Energéticas fuera de rango típico (0–50/sem).";
 
     return {
       A,
@@ -601,7 +629,7 @@ export default function CardioMetabolicApp() {
       },
       missing: {
         waist: WC === null,
-        bp: !hasBP, // opcional, pero sirve para “afinar”
+        bp: !hasBP,
         glucose: G === null,
         hba1c: A1c === null,
         cholTotal: CT === null,
@@ -621,6 +649,8 @@ export default function CardioMetabolicApp() {
     breadsPerDay,
     sugaryDrinksPerWeek,
     proteinServingsPerDay,
+    extraSalt,
+    energyDrinksPerWeek,
     friedPeriod,
     friedCount,
     sleepHours,
@@ -654,6 +684,18 @@ export default function CardioMetabolicApp() {
         ],
       });
     }
+    if (has("sal extra")) {
+      out.push({
+        title: "Reducir sal añadida",
+        tips: ["No agregues sal al plato", "Usa limón/ajo/merken/hierbas para sabor", "Evita caldos/cubitos y snacks salados"],
+      });
+    }
+    if (has("energéticas")) {
+      out.push({
+        title: "Reducir bebidas energéticas",
+        tips: ["Cambia por agua/infusión", "Evita energéticas tarde (mejora sueño)", "Si necesitas: café 1–2 al día (sin azúcar)"],
+      });
+    }
     if (has("imc")) {
       out.push({
         title: "Bajar 5–10% del peso (si aplica)",
@@ -669,7 +711,7 @@ export default function CardioMetabolicApp() {
     if (has("pan")) {
       out.push({
         title: "Reducir pan/harinas y subir comida real",
-        tips: ["Cambia 1 pan por fruta/yoghurt natural", "Incluye legumbres 2–3x/sem", "Más verduras en almuerzo/cena"],
+        tips: ["Cambia 1 pan por fruta/yaourt natural", "Incluye legumbres 2–3x/sem", "Más verduras en almuerzo/cena"],
       });
     }
     if (has("azúcares") || has("bebidas")) {
@@ -721,13 +763,13 @@ export default function CardioMetabolicApp() {
 
   const [openTipIndex, setOpenTipIndex] = useState(null);
 
-  // Drivers reales: top 3 por puntos
+  // Drivers: top 3 por puntos
   const drivers = useMemo(() => {
     const top = [...(computed.contrib ?? [])].sort((a, b) => b.points - a.points).slice(0, 3);
     return top.map((x) => x.label);
   }, [computed.contrib]);
 
-  // Controles CESFAM + “qué pedir”
+  // Controles CESFAM
   const suggestedControls = useMemo(() => {
     const A = computed.A;
     if (A === null) return [];
@@ -778,7 +820,6 @@ export default function CardioMetabolicApp() {
       });
     }
 
-    // Control HTA por dx o PA elevada
     const bpHigh = computed.bp?.hasBP && (computed.bp.sys >= 140 || computed.bp.dia >= 90);
     const bpAlert = computed.bp?.hasBP && !bpHigh && (computed.bp.sys >= 130 || computed.bp.dia >= 85);
 
@@ -870,7 +911,7 @@ export default function CardioMetabolicApp() {
     return out;
   }, [computed.missing]);
 
-  // Seguimiento: cargar historial
+  // Cargar historial
   useEffect(() => {
     try {
       const raw = localStorage.getItem("cm_last");
@@ -920,7 +961,7 @@ export default function CardioMetabolicApp() {
     setTimeout(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   };
 
-  // Resumen para compartir/clipboard/print
+  // Resumen
   const buildSummaryText = () => {
     const d = new Date().toLocaleDateString();
     const lines = [
@@ -929,11 +970,13 @@ export default function CardioMetabolicApp() {
     ];
     if (drivers?.length) lines.push(`Principales factores detectados: ${drivers.join(" · ")}`);
 
-    if (computed.bp?.hasBP) {
-      lines.push(`Presión arterial: ${computed.bp.sys}/${computed.bp.dia} mmHg`);
-    } else {
-      lines.push(`Presión arterial: no informada`);
-    }
+    if (computed.bp?.hasBP) lines.push(`Presión arterial: ${computed.bp.sys}/${computed.bp.dia} mmHg`);
+    else lines.push(`Presión arterial: no informada`);
+
+    lines.push(`Sal añadida: ${extraSalt === "never" ? "No" : extraSalt === "sometimes" ? "A veces" : "Frecuentemente"}`);
+
+    const e = toNum(energyDrinksPerWeek);
+    lines.push(`Energéticas: ${e === null ? "no informado" : `${e} veces/sem`}`);
 
     const alcTxt = `Alcohol: ${alcoholLabel(computed.alcohol?.category)} (${computed.alcohol?.drinksPerWeek ?? 0} tragos/sem, atracón: ${
       computed.alcohol?.binge === "yes" ? "sí" : "no"
@@ -1003,6 +1046,29 @@ export default function CardioMetabolicApp() {
     return txt;
   }, [computed.level]);
 
+  // Footer navegación (abajo)
+  const StepNav = () => (
+    <div className="flex items-center justify-between pt-6">
+      <button
+        type="button"
+        onClick={() => goStep(step - 1)}
+        className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50 transition disabled:opacity-50"
+        disabled={step === 0}
+      >
+        Atrás
+      </button>
+
+      <button
+        type="button"
+        onClick={() => goStep(step + 1)}
+        className="rounded-xl border px-4 py-2 text-sm bg-gray-900 text-white hover:opacity-95 transition disabled:opacity-50"
+        disabled={step === steps.length - 1}
+      >
+        Siguiente
+      </button>
+    </div>
+  );
+
   return (
     <main ref={topRef} className="min-h-screen bg-gray-50 p-4">
       <div className="mx-auto max-w-4xl space-y-4">
@@ -1046,7 +1112,7 @@ export default function CardioMetabolicApp() {
           </div>
         </header>
 
-        {/* Wizard header */}
+        {/* Wizard header (solo tabs + barra, SIN botones arriba) */}
         <section className="rounded-2xl bg-white p-5 shadow-sm border">
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm font-medium">
@@ -1072,25 +1138,6 @@ export default function CardioMetabolicApp() {
                 {s.title}
               </button>
             ))}
-          </div>
-
-          <div className="mt-4 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => goStep(step - 1)}
-              className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50 transition disabled:opacity-50"
-              disabled={step === 0}
-            >
-              Atrás
-            </button>
-            <button
-              type="button"
-              onClick={() => goStep(step + 1)}
-              className="rounded-xl border px-4 py-2 text-sm bg-gray-900 text-white hover:opacity-95 transition disabled:opacity-50"
-              disabled={step === steps.length - 1}
-            >
-              Siguiente
-            </button>
           </div>
         </section>
 
@@ -1259,6 +1306,8 @@ export default function CardioMetabolicApp() {
                 </div>
               </div>
             ) : null}
+
+            <StepNav />
           </section>
         ) : null}
 
@@ -1314,6 +1363,37 @@ export default function CardioMetabolicApp() {
                   { label: "1", value: 1 },
                   { label: "2", value: 2 },
                   { label: "3", value: 3 },
+                ]}
+              />
+
+              {/* NUEVO: sal añadida */}
+              <Select
+                id="extraSalt"
+                label="¿Añades sal extra a la comida?"
+                value={extraSalt}
+                onChange={setExtraSalt}
+                options={[
+                  { value: "never", label: "Nunca" },
+                  { value: "sometimes", label: "A veces" },
+                  { value: "often", label: "Frecuentemente" },
+                ]}
+                hint="Ej: agregar sal al plato ya servido."
+              />
+
+              {/* NUEVO: energéticas */}
+              <NumericInput
+                id="energy"
+                label="Bebidas energéticas"
+                value={energyDrinksPerWeek}
+                onChange={setEnergyDrinksPerWeek}
+                placeholder="Ej: 2"
+                suffix="veces/sem"
+                warning={computed.warnings?.energy}
+                quickPills={[
+                  { label: "0", value: 0 },
+                  { label: "1", value: 1 },
+                  { label: "3", value: 3 },
+                  { label: "5", value: 5 },
                 ]}
               />
 
@@ -1389,7 +1469,7 @@ export default function CardioMetabolicApp() {
                 ]}
               />
 
-              {/* Alcohol mejorado */}
+              {/* Alcohol */}
               <div className="space-y-3">
                 <NumericInput
                   id="alcoholDrinksPerWeek"
@@ -1434,6 +1514,8 @@ export default function CardioMetabolicApp() {
                 </div>
               </div>
             </div>
+
+            <StepNav />
           </section>
         ) : null}
 
@@ -1553,6 +1635,8 @@ export default function CardioMetabolicApp() {
                 *Orientación preventiva. No reemplaza evaluación clínica ni controles de enfermedades crónicas.
               </div>
             </div>
+
+            <StepNav />
           </section>
         ) : null}
 
@@ -1593,6 +1677,18 @@ export default function CardioMetabolicApp() {
                   ) : (
                     <div className="mt-2 text-xs text-gray-600">PA: no informada</div>
                   )}
+
+                  <div className="mt-2 text-xs text-gray-600">
+                    Sal añadida:{" "}
+                    <span className="font-semibold">
+                      {extraSalt === "never" ? "No" : extraSalt === "sometimes" ? "A veces" : "Frecuente"}
+                    </span>
+                    {" · "}
+                    Energéticas:{" "}
+                    <span className="font-semibold">
+                      {toNum(energyDrinksPerWeek) === null ? "no informado" : `${toNum(energyDrinksPerWeek)} /sem`}
+                    </span>
+                  </div>
 
                   <div className="mt-2 text-xs text-gray-600">
                     Alcohol estimado:{" "}
@@ -1651,7 +1747,7 @@ export default function CardioMetabolicApp() {
               ) : null}
             </div>
 
-            {/* Acciones con CTA */}
+            {/* Acciones */}
             <div className="rounded-xl border p-4">
               <div className="font-semibold">Tus 3 acciones prioritarias</div>
               <div className="mt-3 space-y-2">
@@ -1770,23 +1866,25 @@ export default function CardioMetabolicApp() {
             <p className="mt-2 text-xs text-gray-500">
               *La frecuencia exacta de algunos tamizajes puede variar por programa local, disponibilidad y criterio clínico en tu CESFAM.
             </p>
+
+            <StepNav />
           </section>
         ) : null}
 
         {/* Modal: ¿Cómo se calcula? */}
         <Modal open={openHow} title="¿Cómo se calcula este resultado?" onClose={() => setOpenHow(false)}>
           <p>
-            Este MVP suma puntos por <span className="font-semibold">factores de riesgo</span> (por ejemplo IMC alto,
-            cintura alta, presión arterial elevada, baja actividad, tabaco, glicemia/HbA1c elevadas, etc.). A mayor puntaje,
+            Este MVP suma puntos por <span className="font-semibold">factores de riesgo</span> (por ejemplo IMC alto, cintura alta,
+            presión arterial elevada, sal añadida, baja actividad, tabaco, glicemia/HbA1c elevadas, etc.). A mayor puntaje,
             mayor prioridad de mejora y control.
           </p>
           <p>
-            <span className="font-semibold">Opcionales</span> (cintura, presión arterial y exámenes): si no los ingresas, no
-            se penaliza; solo se vuelve menos preciso.
+            <span className="font-semibold">Opcionales</span> (cintura, presión arterial y exámenes): si no los ingresas, no se penaliza;
+            solo se vuelve menos preciso.
           </p>
           <p>
-            <span className="font-semibold">Importante:</span> no es un diagnóstico. Si tienes enfermedad crónica o síntomas
-            relevantes, lo correcto es evaluación clínica.
+            <span className="font-semibold">Importante:</span> no es un diagnóstico. Si tienes enfermedad crónica o síntomas relevantes,
+            lo correcto es evaluación clínica.
           </p>
         </Modal>
       </div>
