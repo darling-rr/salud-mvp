@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 /* -------------------- Helpers -------------------- */
 const toNum = (s) => {
@@ -71,18 +72,23 @@ function Pill({ children, onClick, active = false }) {
   );
 }
 
+/**
+ * ✅ FIX: Hooks NO pueden quedar “después” de un return condicional.
+ * El efecto se declara siempre; adentro chequea `open`.
+ */
 function Modal({ open, title, onClose, children }) {
-  if (!open) return null;
-
-  const stop = (e) => e.stopPropagation();
-
   useEffect(() => {
+    if (!open) return;
     const onKey = (e) => {
       if (e.key === "Escape") onClose?.();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const stop = (e) => e.stopPropagation();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -198,6 +204,9 @@ export default function CardioMetabolicApp() {
   const [history, setHistory] = useState([]);
   const savedForThisResultRef = useRef(false);
 
+  // ✅ Guardado en Supabase “una vez por resultado”
+  const savedToSupabaseRef = useRef(false);
+
   // Demografía
   const [age, setAge] = useState("");
   const [sex, setSex] = useState("F"); // F | M
@@ -254,6 +263,20 @@ export default function CardioMetabolicApp() {
   const [chestPain, setChestPain] = useState("no"); // no|yes
   const [easyFatigue, setEasyFatigue] = useState("no"); // no|yes
   const [stressFreq, setStressFreq] = useState("sometimes"); // never|sometimes|often
+
+  // ✅ Función real para guardar (tabla: assessments; columnas: answers, score, risk_level)
+  async function guardarEvaluacion({ answers, score, riskLevel }) {
+    const { data, error } = await supabase
+      .from("assessments")
+      .insert([{ answers, score, risk_level: riskLevel }])
+      .select();
+
+    if (error) {
+      console.error("Error guardando evaluación:", error);
+      return { ok: false, error };
+    }
+    return { ok: true, data };
+  }
 
   // -------------------- Validación de mercado (MVP) --------------------
   const [mvqAwareness, setMvqAwareness] = useState(""); // "known" | "suspected" | "didntknow"
@@ -928,15 +951,17 @@ export default function CardioMetabolicApp() {
     } catch {}
   }, []);
 
-  // Guardar SOLO al llegar a “Resultado”
+  // ✅ Guardar SOLO al llegar a “Resultado”
   useEffect(() => {
     if (step !== 3) {
       savedForThisResultRef.current = false;
+      savedToSupabaseRef.current = false; // reset para el próximo resultado
       return;
     }
     if (savedForThisResultRef.current) return;
     savedForThisResultRef.current = true;
 
+    // 1) Guardar local
     try {
       const payload = {
         date: new Date().toISOString(),
@@ -956,7 +981,93 @@ export default function CardioMetabolicApp() {
         return next;
       });
     } catch {}
-  }, [step, computed.score, computed.level]);
+
+    // 2) Guardar Supabase (una vez por resultado)
+    (async () => {
+      if (savedToSupabaseRef.current) return;
+      savedToSupabaseRef.current = true;
+
+      const answers = {
+        age,
+        sex,
+        weight,
+        height,
+        waist,
+        bpSys,
+        bpDia,
+        glucose,
+        hba1c,
+        cholTotal,
+        breadsPerDay,
+        sugaryDrinksPerWeek,
+        proteinServingsPerDay,
+        extraSalt,
+        energyDrinksPerWeek,
+        friedPeriod,
+        friedCount,
+        sleepHours,
+        activityMinutesWeek,
+        smoking,
+        alcoholDrinksPerWeek,
+        alcoholBinge,
+        hasHTN,
+        hasDM,
+        hasDyslip,
+        hasCVD,
+        famPrematureCVD,
+        thyroidDx,
+        chestPain,
+        easyFatigue,
+        stressFreq,
+      };
+
+      const res = await guardarEvaluacion({
+        answers,
+        score: computed.score,
+        riskLevel: computed.level,
+      });
+
+      if (!res.ok) {
+        // No interrumpimos al usuario: solo log (y tú lo verás en consola)
+        console.error("No se pudo guardar en Supabase (se mantiene localStorage):", res.error);
+      }
+    })();
+  }, [
+    step,
+    computed.score,
+    computed.level,
+    age,
+    sex,
+    weight,
+    height,
+    waist,
+    bpSys,
+    bpDia,
+    glucose,
+    hba1c,
+    cholTotal,
+    breadsPerDay,
+    sugaryDrinksPerWeek,
+    proteinServingsPerDay,
+    extraSalt,
+    energyDrinksPerWeek,
+    friedPeriod,
+    friedCount,
+    sleepHours,
+    activityMinutesWeek,
+    smoking,
+    alcoholDrinksPerWeek,
+    alcoholBinge,
+    hasHTN,
+    hasDM,
+    hasDyslip,
+    hasCVD,
+    famPrematureCVD,
+    thyroidDx,
+    chestPain,
+    easyFatigue,
+    stressFreq,
+  ]);
 
   // Reset de encuesta cuando entras a Resultado (para que pueda responder de nuevo)
   useEffect(() => {
@@ -1118,7 +1229,9 @@ export default function CardioMetabolicApp() {
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <h1 className="text-xl font-semibold">Evaluación cardiometabólica (MVP)</h1>
-              <p className="mt-1 text-sm text-gray-600">En 2 minutos identifica tus principales puntos a mejorar y qué controles pedir en APS.</p>
+              <p className="mt-1 text-sm text-gray-600">
+                En 2 minutos identifica tus principales puntos a mejorar y qué controles pedir en APS.
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Badge>Sin registro de datos</Badge>
                 <Badge>Calculado en tu navegador</Badge>
@@ -1189,15 +1302,7 @@ export default function CardioMetabolicApp() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <NumericInput
-                id="age"
-                label="Edad"
-                value={age}
-                onChange={setAge}
-                placeholder="Ej: 31"
-                suffix="años"
-                warning={computed.warnings?.age}
-              />
+              <NumericInput id="age" label="Edad" value={age} onChange={setAge} placeholder="Ej: 31" suffix="años" warning={computed.warnings?.age} />
 
               <Select
                 id="sex"
@@ -1210,15 +1315,7 @@ export default function CardioMetabolicApp() {
                 ]}
               />
 
-              <NumericInput
-                id="weight"
-                label="Peso"
-                value={weight}
-                onChange={setWeight}
-                placeholder="Ej: 66"
-                suffix="kg"
-                warning={computed.warnings?.weight}
-              />
+              <NumericInput id="weight" label="Peso" value={weight} onChange={setWeight} placeholder="Ej: 66" suffix="kg" warning={computed.warnings?.weight} />
 
               <NumericInput
                 id="height"
@@ -1292,35 +1389,11 @@ export default function CardioMetabolicApp() {
                 )}
               </div>
 
-              <NumericInput
-                id="glucose"
-                label="Glicemia (opcional)"
-                value={glucose}
-                onChange={setGlucose}
-                placeholder="Ej: 92"
-                suffix="mg/dL"
-                warning={computed.warnings?.glucose}
-              />
+              <NumericInput id="glucose" label="Glicemia (opcional)" value={glucose} onChange={setGlucose} placeholder="Ej: 92" suffix="mg/dL" warning={computed.warnings?.glucose} />
 
-              <NumericInput
-                id="hba1c"
-                label="HbA1c (opcional)"
-                value={hba1c}
-                onChange={setHba1c}
-                placeholder="Ej: 5.4"
-                suffix="%"
-                warning={computed.warnings?.hba1c}
-              />
+              <NumericInput id="hba1c" label="HbA1c (opcional)" value={hba1c} onChange={setHba1c} placeholder="Ej: 5.4" suffix="%" warning={computed.warnings?.hba1c} />
 
-              <NumericInput
-                id="chol"
-                label="Colesterol total (opcional)"
-                value={cholTotal}
-                onChange={setCholTotal}
-                placeholder="Ej: 180"
-                suffix="mg/dL"
-                warning={computed.warnings?.chol}
-              />
+              <NumericInput id="chol" label="Colesterol total (opcional)" value={cholTotal} onChange={setCholTotal} placeholder="Ej: 180" suffix="mg/dL" warning={computed.warnings?.chol} />
             </div>
 
             {missingList.length ? (
@@ -1877,6 +1950,7 @@ export default function CardioMetabolicApp() {
 
                 {referencesText ? <div className="mt-3 text-xs text-gray-500">{referencesText}</div> : null}
 
+                {/* ✅ FIX: aquí estaban pegando código como texto. Ahora son botones limpios */}
                 <div className="mt-4 flex gap-2">
                   <button
                     type="button"
@@ -2066,4 +2140,3 @@ export default function CardioMetabolicApp() {
     </main>
   );
 }
-
