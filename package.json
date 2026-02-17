@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "salud-mvp",
   "version": "0.1.0",
   "private": true,
@@ -23,5 +24,9 @@
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+=======
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3"
+>>>>>>> 2ddd131 (chore: add supabase client dependency)
   }
 }
