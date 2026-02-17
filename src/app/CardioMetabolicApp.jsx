@@ -78,6 +78,16 @@ function Modal({ open, title, onClose, children }) {
   const stop = (e) => e.stopPropagation();
 
   useEffect(() => {
+
+    useEffect(() => {
+  if (step !== 3) return;
+  // cada vez que llegas a Resultado, permite responder de nuevo
+  setMvqSaved(false);
+  setMvqAwareness("");
+  setMvqMonthly("");
+  setMvqReco("");
+}, [step]);
+
     const onKey = (e) => {
       if (e.key === "Escape") onClose?.();
     };
@@ -255,6 +265,12 @@ export default function CardioMetabolicApp() {
   const [chestPain, setChestPain] = useState("no"); // no|yes
   const [easyFatigue, setEasyFatigue] = useState("no"); // no|yes
   const [stressFreq, setStressFreq] = useState("sometimes"); // never|sometimes|often
+
+// -------------------- Validación de mercado (MVP) --------------------
+const [mvqAwareness, setMvqAwareness] = useState(""); // "known" | "suspected" | "didntknow"
+const [mvqMonthly, setMvqMonthly] = useState(""); // "yes" | "maybe" | "no"
+const [mvqReco, setMvqReco] = useState(""); // "yes" | "maybe" | "no"
+const [mvqSaved, setMvqSaved] = useState(false);
 
   // Refs para scroll
   const topRef = useRef(null);
@@ -711,7 +727,7 @@ export default function CardioMetabolicApp() {
     if (has("pan")) {
       out.push({
         title: "Reducir pan/harinas y subir comida real",
-        tips: ["Cambia 1 pan por fruta/yaourt natural", "Incluye legumbres 2–3x/sem", "Más verduras en almuerzo/cena"],
+        tips: ["Cambia 1 pan por fruta/yoghurt natural", "Incluye legumbres 2–3x/sem", "Más verduras en almuerzo/cena"],
       });
     }
     if (has("azúcares") || has("bebidas")) {
@@ -1005,6 +1021,34 @@ export default function CardioMetabolicApp() {
       alert("No se pudo copiar. Puedes seleccionar y copiar el resumen manualmente.");
     }
   };
+
+  const saveMarketValidation = () => {
+  // Validación simple: si falta algo, no guardamos
+  if (!mvqAwareness || !mvqMonthly || !mvqReco) {
+    alert("Porfa responde las 3 preguntas 🙂");
+    return;
+  }
+
+  try {
+    const payload = {
+      date: new Date().toISOString(),
+      score: computed.score,
+      level: computed.level,
+      awareness: mvqAwareness,
+      monthly: mvqMonthly,
+      recommendations: mvqReco,
+    };
+
+    const raw = localStorage.getItem("cm_market_validation");
+    const prev = raw ? JSON.parse(raw) : [];
+    const next = [payload, ...(Array.isArray(prev) ? prev : [])].slice(0, 200); // guarda hasta 200 respuestas
+
+    localStorage.setItem("cm_market_validation", JSON.stringify(next));
+    setMvqSaved(true);
+  } catch {
+    alert("No se pudo guardar tu respuesta. Intenta nuevamente.");
+  }
+};
 
   const printPDF = () => {
     const text = buildSummaryText().replace(/\n/g, "<br/>");
@@ -1306,7 +1350,146 @@ export default function CardioMetabolicApp() {
                 </div>
               </div>
             ) : null}
+{/* -------------------- Bloque final de validación de mercado -------------------- */}
+<div className="rounded-2xl border p-4 bg-white">
+  <div className="font-semibold text-gray-900">Ayúdanos a mejorar (1 minuto)</div>
+  <p className="mt-1 text-sm text-gray-600">
+    Tus respuestas nos ayudan a mejorar esta herramienta preventiva. La información se utiliza de forma anónima.
+  </p>
 
+  <div className="mt-4 grid gap-4 md:grid-cols-3">
+    <div className="space-y-2">
+      <div className="text-sm font-medium">¿Conocías tu nivel de riesgo antes de esta evaluación?</div>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="mvqAwareness"
+          value="known"
+          checked={mvqAwareness === "known"}
+          onChange={(e) => setMvqAwareness(e.target.value)}
+        />
+        Sí, ya lo conocía
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="mvqAwareness"
+          value="suspected"
+          checked={mvqAwareness === "suspected"}
+          onChange={(e) => setMvqAwareness(e.target.value)}
+        />
+        Lo sospechaba, pero no estaba seguro(a)
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="mvqAwareness"
+          value="didntknow"
+          checked={mvqAwareness === "didntknow"}
+          onChange={(e) => setMvqAwareness(e.target.value)}
+        />
+        No, no lo sabía
+      </label>
+    </div>
+
+    <div className="space-y-2">
+      <div className="text-sm font-medium">¿Te gustaría repetir esta evaluación mensualmente para monitorear tu salud?</div>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="mvqMonthly"
+          value="yes"
+          checked={mvqMonthly === "yes"}
+          onChange={(e) => setMvqMonthly(e.target.value)}
+        />
+        Sí, definitivamente
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="mvqMonthly"
+          value="maybe"
+          checked={mvqMonthly === "maybe"}
+          onChange={(e) => setMvqMonthly(e.target.value)}
+        />
+        Tal vez
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="mvqMonthly"
+          value="no"
+          checked={mvqMonthly === "no"}
+          onChange={(e) => setMvqMonthly(e.target.value)}
+        />
+        No por ahora
+      </label>
+    </div>
+
+    <div className="space-y-2">
+      <div className="text-sm font-medium">¿Te gustaría recibir recomendaciones personalizadas según tus resultados?</div>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="mvqReco"
+          value="yes"
+          checked={mvqReco === "yes"}
+          onChange={(e) => setMvqReco(e.target.value)}
+        />
+        Sí
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="mvqReco"
+          value="maybe"
+          checked={mvqReco === "maybe"}
+          onChange={(e) => setMvqReco(e.target.value)}
+        />
+        Tal vez
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="mvqReco"
+          value="no"
+          checked={mvqReco === "no"}
+          onChange={(e) => setMvqReco(e.target.value)}
+        />
+        No
+      </label>
+    </div>
+  </div>
+
+  <div className="mt-4 flex flex-wrap items-center gap-2">
+    <button
+      type="button"
+      onClick={saveMarketValidation}
+      className={classNames(
+        "rounded-xl border px-4 py-2 text-sm transition active:scale-[0.99]",
+        mvqSaved ? "bg-gray-100 text-gray-500" : "bg-gray-900 text-white hover:opacity-95"
+      )}
+      disabled={mvqSaved}
+    >
+      {mvqSaved ? "Respuesta guardada ✅" : "Enviar respuestas"}
+    </button>
+
+    {!mvqSaved ? (
+      <span className="text-xs text-gray-600">*Anónimo · No guardamos tu nombre</span>
+    ) : (
+      <span className="text-xs text-gray-600">¡Gracias! 💛</span>
+    )}
+  </div>
+</div>
             <StepNav />
           </section>
         ) : null}
