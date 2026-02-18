@@ -1059,10 +1059,10 @@ async function guardarEvaluacion({
   mvqReco
 });
 
-      if (!res.ok) {
-        // No interrumpimos al usuario: solo log (y tú lo verás en consola)
-        console.error("No se pudo guardar en Supabase (se mantiene localStorage):", res.error);
-      }
+     
+if (res.ok && res.data?.[0]?.id) {
+  localStorage.setItem("cm_last_assessment_id", res.data[0].id);
+}
     })();
   }, [
     step,
@@ -1163,32 +1163,54 @@ async function guardarEvaluacion({
     }
   };
 
-  const saveMarketValidation = () => {
-    if (!mvqAwareness || !mvqMonthly || !mvqReco) {
-      alert("Porfa responde las 3 preguntas 🙂");
-      return;
-    }
+ const saveMarketValidation = async () => {
+  if (!mvqAwareness || !mvqMonthly || !mvqReco) {
+    alert("Porfa responde las 3 preguntas 🙂");
+    return;
+  }
 
-    try {
-      const payload = {
-        date: new Date().toISOString(),
-        score: computed.score,
-        level: computed.level,
-        awareness: mvqAwareness,
-        monthly: mvqMonthly,
-        recommendations: mvqReco,
-      };
+  // guarda local (lo que ya hacías)
+  try {
+    const payload = {
+      date: new Date().toISOString(),
+      score: computed.score,
+      level: computed.level,
+      awareness: mvqAwareness,
+      monthly: mvqMonthly,
+      recommendations: mvqReco,
+    };
 
-      const raw = localStorage.getItem("cm_market_validation");
-      const prev = raw ? JSON.parse(raw) : [];
-      const next = [payload, ...(Array.isArray(prev) ? prev : [])].slice(0, 200);
+    const raw = localStorage.getItem("cm_market_validation");
+    const prev = raw ? JSON.parse(raw) : [];
+    const next = [payload, ...(Array.isArray(prev) ? prev : [])].slice(0, 200);
+    localStorage.setItem("cm_market_validation", JSON.stringify(next));
+  } catch {}
 
-      localStorage.setItem("cm_market_validation", JSON.stringify(next));
-      setMvqSaved(true);
-    } catch {
-      alert("No se pudo guardar tu respuesta. Intenta nuevamente.");
-    }
-  };
+  // ✅ guardar en supabase (update a la última evaluación)
+  try {
+    const id = localStorage.getItem("cm_last_assessment_id");
+
+    if (!supabase) throw new Error("supabase_not_configured");
+    if (!id) throw new Error("missing_assessment_id");
+
+    const { error } = await supabase
+      .from("assessments")
+      .update({
+        mvq_awareness: mvqAwareness,
+        mvq_monthly: mvqMonthly,
+        mvq_reco: mvqReco,
+      })
+      .eq("id", id);
+
+    if (error) throw error;
+
+    setMvqSaved(true);
+  } catch (e) {
+    console.error("No se pudo guardar MVQ en Supabase:", e);
+    // igual marcamos como guardado localmente para no molestar al usuario
+    setMvqSaved(true);
+  }
+};
 
   const printPDF = () => {
     const text = buildSummaryText().replace(/\n/g, "<br/>");
