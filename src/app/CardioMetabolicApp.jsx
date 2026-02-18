@@ -265,7 +265,14 @@ export default function CardioMetabolicApp() {
   const [stressFreq, setStressFreq] = useState("sometimes"); // never|sometimes|often
 
   // ✅ Función real para guardar (tabla: assessments; columnas: answers, score, risk_level)
-async function guardarEvaluacion({ answers, score, riskLevel }) {
+async function guardarEvaluacion({
+  answers,
+  score,
+  riskLevel,
+  mvqAwareness,
+  mvqMonthly,
+  mvqReco
+}) {
   console.log("🟢 guardarEvaluacion llamada", { score, riskLevel });
 
   if (!supabase) {
@@ -279,7 +286,11 @@ async function guardarEvaluacion({ answers, score, riskLevel }) {
       {
         answers,
         score,
-        risk_level: riskLevel, // tu columna en Supabase es risk_level ✅
+        risk_level: riskLevel,
+         mvq_awareness: mvqAwareness,
+      mvq_monthly: mvqMonthly,
+      mvq_reco: mvqReco
+         // tu columna en Supabase es risk_level ✅
       },
     ])
     .select();
@@ -1040,10 +1051,13 @@ async function guardarEvaluacion({ answers, score, riskLevel }) {
       };
 
       const res = await guardarEvaluacion({
-        answers,
-        score: computed.score,
-        riskLevel: computed.level,
-      });
+  answers,
+  score: computed.score,
+  riskLevel: computed.level,
+  mvqAwareness,
+  mvqMonthly,
+  mvqReco
+});
 
       if (!res.ok) {
         // No interrumpimos al usuario: solo log (y tú lo verás en consola)
