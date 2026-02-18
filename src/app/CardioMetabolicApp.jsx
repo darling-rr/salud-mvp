@@ -1274,52 +1274,115 @@ if (res.ok && res.data?.[0]?.id) {
       </button>
     </div>
   );
-
+const heroCards = [
+    {
+      title: "Procesamiento automático",
+      description: "Tus respuestas se procesan automáticamente.",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M10.3 3.2 9.8 5a7.5 7.5 0 0 0-1.7.7L6.4 4.8 4.8 6.4l.9 1.7c-.3.5-.5 1.1-.7 1.7l-1.8.5v2.4l1.8.5c.1.6.4 1.2.7 1.7l-.9 1.7 1.6 1.6 1.7-.9c.5.3 1.1.5 1.7.7l.5 1.8h2.4l.5-1.8c.6-.1 1.2-.4 1.7-.7l1.7.9 1.6-1.6-.9-1.7c.3-.5.5-1.1.7-1.7l1.8-.5v-2.4l-1.8-.5a7.5 7.5 0 0 0-.7-1.7l.9-1.7-1.6-1.6-1.7.9a7.5 7.5 0 0 0-1.7-.7l-.5-1.8h-2.4Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      ),
+    },
+    {
+      title: "Privacidad protegida",
+      description: "No solicitamos datos personales identificables.",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M12 3 5 6v5.3c0 4.4 2.9 8.4 7 9.7 4.1-1.3 7-5.3 7-9.7V6l-7-3Z" />
+          <path d="M9.7 11.8V10a2.3 2.3 0 0 1 4.6 0v1.8" />
+          <rect x="8.8" y="11.8" width="6.4" height="5" rx="1.2" />
+        </svg>
+      ),
+    },
+    {
+      title: "¿Cómo se calcula?",
+      description: "Basado en factores clínicos y hábitos de salud.",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.2-3.2" />
+          <path d="M11 14.2v-.2c0-1 .8-1.5 1.4-1.9.6-.4 1.2-.9 1.2-1.8a2.6 2.6 0 0 0-5.2.2" />
+          <circle cx="11" cy="17" r=".8" fill="currentColor" stroke="none" />
+        </svg>
+      ),
+      onClick: () => setOpenHow(true),
+    },
+  ];
   return (
-    <main ref={topRef} className="min-h-screen bg-gray-50 p-4">
-      <div className="mx-auto max-w-4xl space-y-4">
+ <main ref={topRef} className="min-h-screen bg-[#f6f7fb] p-4 md:p-7">
+      <div className="mx-auto max-w-4xl space-y-5">
+
         {/* HERO */}
-        <header className="rounded-2xl bg-white p-5 shadow-sm border">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
-              <h1 className="text-xl font-semibold">Evaluación cardiometabólica (MVP)</h1>
-              <p className="mt-1 text-sm text-gray-600">
+           <header className="rounded-[2rem] border border-slate-300 bg-white p-6 shadow-[0_2px_5px_rgba(0,0,0,0.04)] md:p-8">
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gray-100 text-gray-600">
+                <svg viewBox="0 0 24 24" className="h-8 w-8" fill="currentColor">
+                  <circle cx="12" cy="7" r="3" />
+                  <rect x="9" y="11" width="6" height="10" rx="2" />
+                </svg>
+              </div>
+              <h1 className="text-4xl font-semibold tracking-[-0.02em] text-slate-900">Evaluación cardiometabólica (MVP)</h1>
+              <p className="max-w-3xl text-[2rem]/snug text-gray-600 md:text-[2.05rem]">
                 En 2 minutos identifica tus principales puntos a mejorar y qué controles pedir en APS.
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Badge>Sin registro de datos</Badge>
-                <Badge>Calculado en tu navegador</Badge>
-                <button
-                  type="button"
-                  onClick={() => setOpenHow(true)}
-                  className="rounded-full border px-3 py-1 text-xs bg-white hover:bg-gray-50 transition"
-                >
-                  ¿Cómo se calcula?
-                </button>
               </div>
+
+            <div className="space-y-3">
+              {heroCards.map((card) => (
+                <button
+                  key={card.title}
+                  type="button"
+                         onClick={card.onClick}
+                  className={classNames(
+                    "w-full rounded-3xl border border-slate-300 bg-white px-5 py-4 text-left transition",
+                    card.onClick ? "hover:bg-slate-50" : "cursor-default"
+                  )}
+                >
+                   <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-[#2d4a6d]">
+                      {card.icon}
+                    </div>
+                    <div>
+                      <h3 className="text-3xl font-semibold text-slate-900">{card.title}</h3>
+                      <p className="text-[1.65rem] text-slate-600">{card.description}</p>
+                    </div>
+                    <span className="ml-auto shrink-0 text-[1.75rem] font-medium text-[#2d4a86]">Ver más ›</span>
+                  </div>
+                </button>
+                  ))}
             </div>
 
-            <div className="flex gap-2">
+             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={shareSummary}
-                className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50 transition active:scale-[0.99]"
+                className="flex flex-1 items-center justify-center gap-3 rounded-3xl bg-gradient-to-r from-[#151f3f] via-[#11172e] to-[#15244b] px-7 py-4 text-[1.7rem] font-semibold text-white transition hover:opacity-95"
               >
+                                 <span className="text-[1.8rem]">⇩</span>
                 Compartir resumen
               </button>
               <button
                 type="button"
                 onClick={printPDF}
-                className="rounded-xl border px-4 py-2 text-sm bg-gray-900 text-white hover:opacity-95 transition active:scale-[0.99]"
+                    className="flex flex-1 items-center justify-center gap-3 rounded-3xl bg-gradient-to-r from-[#151f3f] via-[#11172e] to-[#15244b] px-7 py-4 text-[1.7rem] font-semibold text-white transition hover:opacity-95"
               >
+                 <span className="text-[1.8rem]">⇩</span>
                 Guardar PDF
               </button>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              <Badge>Sin registro de datos</Badge>
+              <Badge>Calculado en tu navegador</Badge>
             </div>
           </div>
         </header>
 
         {/* Wizard header (tabs + barra) */}
-        <section className="rounded-2xl bg-white p-5 shadow-sm border">
+        <section className="rounded-[2rem] border border-slate-300 bg-white p-6 shadow-[0_2px_5px_rgba(0,0,0,0.04)] md:p-8">
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm font-medium">
               Paso {step + 1} de {steps.length}: <span className="font-semibold">{steps[step].title}</span>
@@ -1337,8 +1400,8 @@ if (res.ok && res.data?.[0]?.id) {
                 type="button"
                 onClick={() => goStep(i)}
                 className={classNames(
-                  "rounded-full border px-3 py-1 text-xs transition",
-                  i === step ? "bg-gray-900 text-white border-gray-900" : "bg-white hover:bg-gray-50"
+                    "rounded-full border border-slate-300 px-6 py-2 text-[1.9rem] leading-tight transition",
+                  i === step ? "border-[#15244b] bg-[#15244b] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
                 )}
               >
                 {s.title}
