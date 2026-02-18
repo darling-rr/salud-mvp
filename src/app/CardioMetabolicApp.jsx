@@ -265,18 +265,34 @@ export default function CardioMetabolicApp() {
   const [stressFreq, setStressFreq] = useState("sometimes"); // never|sometimes|often
 
   // ✅ Función real para guardar (tabla: assessments; columnas: answers, score, risk_level)
-  async function guardarEvaluacion({ answers, score, riskLevel }) {
-    const { data, error } = await supabase
-      .from("assessments")
-      .insert([{ answers, score, risk_level: riskLevel }])
-      .select();
+async function guardarEvaluacion({ answers, score, riskLevel }) {
+  console.log("🟢 guardarEvaluacion llamada", { score, riskLevel });
 
-    if (error) {
-      console.error("Error guardando evaluación:", error);
-      return { ok: false, error };
-    }
-    return { ok: true, data };
+  if (!supabase) {
+    console.error("❌ Supabase no configurado (env vars faltantes)");
+    return { ok: false, error: "supabase_not_configured" };
   }
+
+  const { data, error } = await supabase
+    .from("assessments")
+    .insert([
+      {
+        answers,
+        score,
+        risk_level: riskLevel, // tu columna en Supabase es risk_level ✅
+      },
+    ])
+    .select();
+
+  console.log("🟡 resultado insert", { data, error });
+
+  if (error) {
+    console.error("❌ Error guardando evaluación:", error);
+    return { ok: false, error };
+  }
+
+  return { ok: true, data };
+}
 
   // -------------------- Validación de mercado (MVP) --------------------
   const [mvqAwareness, setMvqAwareness] = useState(""); // "known" | "suspected" | "didntknow"
@@ -986,6 +1002,8 @@ export default function CardioMetabolicApp() {
     (async () => {
       if (savedToSupabaseRef.current) return;
       savedToSupabaseRef.current = true;
+
+      console.log("🧪 Intentando guardar en Supabase desde step 3");
 
       const answers = {
         age,
