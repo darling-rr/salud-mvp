@@ -1316,72 +1316,97 @@ const heroCards = [
       <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-5">
 
         {/* HERO */}
-            <header className="rounded-[1.5rem] border border-slate-300 bg-white p-4 shadow-[0_2px_5px_rgba(0,0,0,0.04)] sm:rounded-[1.75rem] sm:p-5 md:rounded-[2rem] md:p-8">
-          <div className="space-y-4 sm:space-y-5 md:space-y-6">
-            <div className="space-y-3 sm:space-y-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 sm:h-14 sm:w-14 sm:rounded-3xl md:h-16 md:w-16">
-                <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" fill="currentColor">
-                  <circle cx="12" cy="7" r="3" />
-                  <rect x="9" y="11" width="6" height="10" rx="2" />
-                </svg>
+           {/* HERO */}
+<header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 md:p-8">
+  <div className="space-y-5">
+    {/* Icon + Title */}
+    <div className="space-y-3">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 sm:h-14 sm:w-14">
+        <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-7 sm:w-7" fill="currentColor">
+          <circle cx="12" cy="7" r="3" />
+          <rect x="9" y="11" width="6" height="10" rx="2" />
+        </svg>
+      </div>
+
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">
+        Evaluación cardiometabólica (MVP)
+      </h1>
+
+      <p className="max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base lg:text-lg">
+        En 2 minutos identifica tus principales puntos a mejorar y qué controles pedir en APS.
+      </p>
+    </div>
+
+    {/* Cards */}
+    <div className="space-y-3">
+      {heroCards.map((card) => {
+        const clickable = Boolean(card.onClick);
+
+        const CardTag = clickable ? "button" : "div";
+
+        return (
+          <CardTag
+            key={card.title}
+            type={clickable ? "button" : undefined}
+            onClick={clickable ? card.onClick : undefined}
+            className={classNames(
+              "w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition sm:rounded-3xl sm:px-5",
+              clickable ? "hover:bg-slate-50" : "cursor-default"
+            )}
+          >
+            <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 sm:h-12 sm:w-12">
+                {card.icon}
               </div>
-              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-3xl md:text-4xl">Evaluación cardiometabólica (MVP)</h1>
-              <p className="max-w-3xl text-base leading-snug text-gray-600 sm:text-lg md:text-[1.6rem] lg:text-[2rem]">
-                En 2 minutos identifica tus principales puntos a mejorar y qué controles pedir en APS.
-              </p>
-             </div>
 
-            <div className="space-y-3">
-              {heroCards.map((card) => (
-                <button
-                  key={card.title}
-                  type="button"
-                  onClick={card.onClick}
-                  className={classNames(
-                    "w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 text-left transition sm:rounded-3xl sm:px-4 sm:py-4 md:px-5",
-                    card.onClick ? "hover:bg-slate-50" : "cursor-default"
-                  )}
-                >
-                   <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-[#2d4a6d] sm:h-14 sm:w-14 md:h-16 md:w-16">
-                      {card.icon}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-lg font-semibold leading-tight text-slate-900 sm:text-xl md:text-2xl lg:text-3xl">{card.title}</h3>
-                      <p className="text-sm text-slate-600 sm:text-base md:text-lg lg:text-[1.65rem]">{card.description}</p>
-                    </div>
-                    <span className="ml-auto shrink-0 pl-2 text-sm font-medium text-[#2d4a86] sm:text-base md:text-lg lg:text-[1.3rem]">Ver más ›</span>
-                  </div>
-                </button>
-                  ))}
-            </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                  {card.title}
+                </h3>
+                <p className="mt-0.5 text-sm text-slate-600 sm:text-base">
+                  {card.description}
+                </p>
+              </div>
 
-             <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={shareSummary}
-               className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#151f3f] via-[#11172e] to-[#15244b] px-4 py-3 text-base font-semibold text-white transition hover:opacity-95 sm:gap-3 sm:rounded-3xl sm:px-5 sm:py-4 sm:text-lg md:px-7 md:text-xl lg:text-[1.7rem]"
-              >
-                                 <span className="text-lg sm:text-xl md:text-2xl lg:text-[1.8rem]">↗</span>
-                Compartir resumen
-              </button>
-              <button
-                type="button"
-                onClick={printPDF}
-                       className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#151f3f] via-[#11172e] to-[#15244b] px-4 py-3 text-base font-semibold text-white transition hover:opacity-95 sm:gap-3 sm:rounded-3xl sm:px-5 sm:py-4 sm:text-lg md:px-7 md:text-xl lg:text-[1.7rem]"
-              >
-              
-                 <span className="text-lg sm:text-xl md:text-2xl lg:text-[1.8rem]">⇩</span>
-                Guardar PDF
-              </button>
+              {clickable ? (
+                <span className="ml-auto shrink-0 pl-2 text-sm font-medium text-slate-600">
+                  Ver más ›
+                </span>
+              ) : null}
             </div>
-             <div className="flex flex-wrap gap-2">
-              <Badge>Sin registro de datos</Badge>
-              <Badge>Calculado en tu navegador</Badge>
-            </div>
-          
-          </div>
-        </header>
+          </CardTag>
+        );
+      })}
+    </div>
+
+    {/* Actions */}
+    <div className="flex flex-col gap-3 sm:flex-row">
+      <button
+        type="button"
+        onClick={shareSummary}
+        className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95 sm:rounded-3xl sm:text-base"
+      >
+        <span className="text-lg">↗</span>
+        Compartir resumen
+      </button>
+
+      <button
+        type="button"
+        onClick={printPDF}
+        className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95 sm:rounded-3xl sm:text-base"
+      >
+        <span className="text-lg">⇩</span>
+        Guardar PDF
+      </button>
+    </div>
+
+    {/* Badges */}
+    <div className="flex flex-wrap gap-2">
+      <Badge>Sin registro de datos</Badge>
+      <Badge>Calculado en tu navegador</Badge>
+    </div>
+  </div>
+</header>
 
         {/* Wizard header (tabs + barra) */}
          <section className="rounded-[1.5rem] border border-slate-300 bg-white p-4 shadow-[0_2px_5px_rgba(0,0,0,0.04)] sm:rounded-[1.75rem] sm:p-5 md:rounded-[2rem] md:p-8">
