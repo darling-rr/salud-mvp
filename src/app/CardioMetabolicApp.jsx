@@ -1310,46 +1310,47 @@ const heroCards = [
       onClick: () => setOpenHow(true),
     },
   ];
+
   return (
- <main ref={topRef} className="min-h-screen bg-[#f6f7fb] p-4 md:p-7">
-      <div className="mx-auto max-w-4xl space-y-5">
+   <main ref={topRef} className="min-h-screen bg-[#f6f7fb] p-3 sm:p-4 md:p-7">
+      <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-5">
 
         {/* HERO */}
-           <header className="rounded-[2rem] border border-slate-300 bg-white p-6 shadow-[0_2px_5px_rgba(0,0,0,0.04)] md:p-8">
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gray-100 text-gray-600">
-                <svg viewBox="0 0 24 24" className="h-8 w-8" fill="currentColor">
+            <header className="rounded-[1.5rem] border border-slate-300 bg-white p-4 shadow-[0_2px_5px_rgba(0,0,0,0.04)] sm:rounded-[1.75rem] sm:p-5 md:rounded-[2rem] md:p-8">
+          <div className="space-y-4 sm:space-y-5 md:space-y-6">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 sm:h-14 sm:w-14 sm:rounded-3xl md:h-16 md:w-16">
+                <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" fill="currentColor">
                   <circle cx="12" cy="7" r="3" />
                   <rect x="9" y="11" width="6" height="10" rx="2" />
                 </svg>
               </div>
-              <h1 className="text-4xl font-semibold tracking-[-0.02em] text-slate-900">Evaluación cardiometabólica (MVP)</h1>
-              <p className="max-w-3xl text-[2rem]/snug text-gray-600 md:text-[2.05rem]">
+              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-3xl md:text-4xl">Evaluación cardiometabólica (MVP)</h1>
+              <p className="max-w-3xl text-base leading-snug text-gray-600 sm:text-lg md:text-[1.6rem] lg:text-[2rem]">
                 En 2 minutos identifica tus principales puntos a mejorar y qué controles pedir en APS.
               </p>
-              </div>
+             </div>
 
             <div className="space-y-3">
               {heroCards.map((card) => (
                 <button
                   key={card.title}
                   type="button"
-                         onClick={card.onClick}
+                  onClick={card.onClick}
                   className={classNames(
-                    "w-full rounded-3xl border border-slate-300 bg-white px-5 py-4 text-left transition",
+                    "w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 text-left transition sm:rounded-3xl sm:px-4 sm:py-4 md:px-5",
                     card.onClick ? "hover:bg-slate-50" : "cursor-default"
                   )}
                 >
-                   <div className="flex items-center gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-[#2d4a6d]">
+                   <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-[#2d4a6d] sm:h-14 sm:w-14 md:h-16 md:w-16">
                       {card.icon}
                     </div>
-                    <div>
-                      <h3 className="text-3xl font-semibold text-slate-900">{card.title}</h3>
-                      <p className="text-[1.65rem] text-slate-600">{card.description}</p>
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-semibold leading-tight text-slate-900 sm:text-xl md:text-2xl lg:text-3xl">{card.title}</h3>
+                      <p className="text-sm text-slate-600 sm:text-base md:text-lg lg:text-[1.65rem]">{card.description}</p>
                     </div>
-                    <span className="ml-auto shrink-0 text-[1.75rem] font-medium text-[#2d4a86]">Ver más ›</span>
+                    <span className="ml-auto shrink-0 pl-2 text-sm font-medium text-[#2d4a86] sm:text-base md:text-lg lg:text-[1.3rem]">Ver más ›</span>
                   </div>
                 </button>
                   ))}
@@ -1359,48 +1360,49 @@ const heroCards = [
               <button
                 type="button"
                 onClick={shareSummary}
-                className="flex flex-1 items-center justify-center gap-3 rounded-3xl bg-gradient-to-r from-[#151f3f] via-[#11172e] to-[#15244b] px-7 py-4 text-[1.7rem] font-semibold text-white transition hover:opacity-95"
+               className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#151f3f] via-[#11172e] to-[#15244b] px-4 py-3 text-base font-semibold text-white transition hover:opacity-95 sm:gap-3 sm:rounded-3xl sm:px-5 sm:py-4 sm:text-lg md:px-7 md:text-xl lg:text-[1.7rem]"
               >
-                                 <span className="text-[1.8rem]">⇩</span>
+                                 <span className="text-lg sm:text-xl md:text-2xl lg:text-[1.8rem]">↗</span>
                 Compartir resumen
               </button>
               <button
                 type="button"
                 onClick={printPDF}
-                    className="flex flex-1 items-center justify-center gap-3 rounded-3xl bg-gradient-to-r from-[#151f3f] via-[#11172e] to-[#15244b] px-7 py-4 text-[1.7rem] font-semibold text-white transition hover:opacity-95"
+                       className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#151f3f] via-[#11172e] to-[#15244b] px-4 py-3 text-base font-semibold text-white transition hover:opacity-95 sm:gap-3 sm:rounded-3xl sm:px-5 sm:py-4 sm:text-lg md:px-7 md:text-xl lg:text-[1.7rem]"
               >
-                 <span className="text-[1.8rem]">⇩</span>
+              
+                 <span className="text-lg sm:text-xl md:text-2xl lg:text-[1.8rem]">⇩</span>
                 Guardar PDF
               </button>
             </div>
-            
-            <div className="flex flex-wrap gap-2">
+             <div className="flex flex-wrap gap-2">
               <Badge>Sin registro de datos</Badge>
               <Badge>Calculado en tu navegador</Badge>
             </div>
+          
           </div>
         </header>
 
         {/* Wizard header (tabs + barra) */}
-        <section className="rounded-[2rem] border border-slate-300 bg-white p-6 shadow-[0_2px_5px_rgba(0,0,0,0.04)] md:p-8">
+         <section className="rounded-[1.5rem] border border-slate-300 bg-white p-4 shadow-[0_2px_5px_rgba(0,0,0,0.04)] sm:rounded-[1.75rem] sm:p-5 md:rounded-[2rem] md:p-8">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-sm font-medium">
-              Paso {step + 1} de {steps.length}: <span className="font-semibold">{steps[step].title}</span>
+               <div className="text-lg font-semibold text-slate-900 sm:text-xl md:text-2xl lg:text-[2rem]">
+              Paso {step + 1} de {steps.length}: <span>{steps[step].title}</span>
             </div>
-            <div className="text-xs text-gray-600">{progressPct}%</div>
+              <div className="text-lg text-gray-600 sm:text-xl md:text-2xl lg:text-[2rem]">{progressPct}%</div>
           </div>
           <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
             <div className="h-full rounded-full bg-gray-900 transition-all" style={{ width: `${progressPct}%` }} />
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+           <div className="mt-4 flex flex-wrap gap-2 sm:mt-5 sm:gap-3">
             {steps.map((s, i) => (
               <button
                 key={s.key}
                 type="button"
                 onClick={() => goStep(i)}
                 className={classNames(
-                    "rounded-full border border-slate-300 px-6 py-2 text-[1.9rem] leading-tight transition",
+                      "rounded-full border border-slate-300 px-3 py-1.5 text-sm leading-tight transition sm:px-4 sm:py-2 sm:text-base md:px-6 md:text-xl lg:text-[1.9rem]",
                   i === step ? "border-[#15244b] bg-[#15244b] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
                 )}
               >
