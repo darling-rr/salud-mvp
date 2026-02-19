@@ -1509,7 +1509,7 @@ export default function CardioMetabolicApp() {
           <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Hábitos</h2>
-              <Badge>Rápido: usa los “chips”</Badge>
+            
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
