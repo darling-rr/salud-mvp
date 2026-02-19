@@ -4,6 +4,42 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 /* -------------------- Helpers -------------------- */
+const sessionIdRef = useRef(null);
+
+useEffect(() => {
+  sessionIdRef.current = getOrCreateSessionId();
+}, []);
+
+const SESSION_COOKIE = "cm_session_id";
+
+const randomId = () => {
+  // crypto.randomUUID() es lo más fácil y robusto
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  // fallback básico
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+const getCookie = (name) => {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+  return m ? decodeURIComponent(m[2]) : null;
+};
+
+const setCookie = (name, value, days = 365) => {
+  if (typeof document === "undefined") return;
+  const maxAge = days * 24 * 60 * 60;
+  document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure`;
+};
+
+const getOrCreateSessionId = () => {
+  let sid = getCookie(SESSION_COOKIE);
+  if (!sid) {
+    sid = randomId();
+    setCookie(SESSION_COOKIE, sid, 365);
+  }
+  return sid;
+};
+
 const toNum = (s) => {
   if (s === null || s === undefined) return null;
   const t = String(s).trim().replace(",", ".");
@@ -250,44 +286,59 @@ export default function CardioMetabolicApp() {
   const [stressFreq, setStressFreq] = useState("sometimes"); // never|sometimes|often
 
   // ✅ Función real para guardar (tabla: assessments; columnas: answers, score, risk_level)
-  async function guardarEvaluacion({ answers, score, riskLevel, mvqAwareness, mvqMonthly, mvqReco }) {
-    console.log("🟢 guardarEvaluacion llamada", { score, riskLevel });
+  async function guardarEvaluacion({
+  answers,
+  score,
+  riskLevel,
+  mvqAwareness,
+  mvqMonthly,
+  mvqReco,
+  ip_hash,
+}) {
+  const session_id = sessionIdRef.current ?? getOrCreateSessionId();
+  const user_agent = typeof navigator !== "undefined" ? navigator.userAgent : null;
 
-    if (!supabase) {
-      console.error("❌ Supabase no configurado (env vars faltantes)");
-      return { ok: false, error: "supabase_not_configured" };
-    }
+  const { data, error } = await supabase
+    .from("assessments")
+    .insert([
+      {
+        answers,
+        score,
+        risk_level: riskLevel,
+        mvq_awareness: mvqAwareness,
+        mvq_monthly: mvqMonthly,
+        mvq_reco: mvqReco,
+        session_id,
+        user_agent,
+        ip_hash,
+      },
+    ])
+    .select();
 
-    const { data, error } = await supabase
-      .from("assessments")
-      .insert([
-        {
-          answers,
-          score,
-          risk_level: riskLevel,
-          mvq_awareness: mvqAwareness,
-          mvq_monthly: mvqMonthly,
-          mvq_reco: mvqReco,
-          // tu columna en Supabase es risk_level ✅
-        },
-      ])
-      .select();
-
-    console.log("🟡 resultado insert", { data, error });
-
-    if (error) {
-      console.error("❌ Error guardando evaluación:", error);
-      return { ok: false, error };
-    }
-
-    return { ok: true, data };
-  }
+  if (error) return { ok: false, error };
+  return { ok: true, data };
+}
 
   // -------------------- Validación de mercado (MVP) --------------------
   const [mvqAwareness, setMvqAwareness] = useState(""); // "known" | "suspected" | "didntknow"
   const [mvqMonthly, setMvqMonthly] = useState(""); // "yes" | "maybe" | "no"
   const [mvqReco, setMvqReco] = useState(""); // "yes" | "maybe" | "no"
   const [mvqSaved, setMvqSaved] = useState(false);
+
+  // Fingerprint técnico (ip + user agent hash)
+const [fp, setFp] = useState({ ip_hash: null, ua_hash: null });
+
+useEffect(() => {
+  (async () => {
+    try {
+      const r = await fetch("/api/fingerprint");
+      const j = await r.json();
+      setFp(j);
+    } catch (e) {
+      console.log("Fingerprint no disponible");
+    }
+  })();
+}, []);
 
   // Refs para scroll
   const topRef = useRef(null);
@@ -1029,13 +1080,14 @@ export default function CardioMetabolicApp() {
       };
 
       const res = await guardarEvaluacion({
-        answers,
-        score: computed.score,
-        riskLevel: computed.level,
-        mvqAwareness,
-        mvqMonthly,
-        mvqReco,
-      });
+  answers,
+  score: computed.score,
+  riskLevel: computed.level,
+  mvqAwareness,
+  mvqMonthly,
+  mvqReco,
+  ip_hash: fp.ip_hash,
+});
 
       if (res.ok && res.data?.[0]?.id) {
         localStorage.setItem("cm_last_assessment_id", res.data[0].id);
