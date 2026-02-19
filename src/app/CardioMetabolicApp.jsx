@@ -57,20 +57,7 @@ function Badge({ children }) {
   );
 }
 
-function Pill({ children, onClick, active = false }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={classNames(
-        "rounded-full border px-3 py-1 text-xs transition active:scale-[0.99]",
-        active ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 hover:bg-gray-50"
-      )}
-    >
-      {children}
-    </button>
-  );
-}
+
 
 /**
  * ✅ FIX: Hooks NO pueden quedar “después” de un return condicional.
@@ -1509,26 +1496,24 @@ export default function CardioMetabolicApp() {
               <NumericInput id="chol" label="Colesterol total (opcional)" value={cholTotal} onChange={setCholTotal} placeholder="Ej: 180" suffix="mg/dL" warning={computed.warnings?.chol} />
             </div>
 
-            {missingList.length ? (
-              <div className="rounded-xl border p-4">
-                <div className="font-semibold">Para afinar el resultado (opcional)</div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {missingList.map((m) => (
-                    <Pill key={m.label} onClick={() => goStep(m.goStep)}>
-                      Agregar: {m.label}
-                    </Pill>
-                  ))}
-                </div>
+        {missingList.length ? (
+  <div className="rounded-xl border p-4">
+    <div className="font-semibold">Para afinar el resultado (opcional)</div>
+    <div className="mt-2 text-sm text-gray-700">
+      Puedes agregar: {missingList.map((m) => m.label).join(" · ")}.
+    </div>
 
-                {computed.missing?.waist ? (
-                  <div className="mt-2 text-xs text-gray-600">
-                    Tip cintura: mide a nivel del ombligo, al final de una espiración, sin apretar la cinta.
-                  </div>
-                ) : null}
+    {computed.missing?.waist ? (
+      <div className="mt-2 text-xs text-gray-600">
+        Tip cintura: mide a nivel del ombligo, al final de una espiración, sin apretar la cinta.
+      </div>
+    ) : null}
 
-                <div className="mt-2 text-xs text-gray-600">Si no los tienes, puedes avanzar igual. El puntaje funciona sin estos datos.</div>
-              </div>
-            ) : null}
+    <div className="mt-2 text-xs text-gray-600">
+      Si no los tienes, puedes avanzar igual. El puntaje funciona sin estos datos.
+    </div>
+  </div>
+) : null}
 
             <StepNav />
           </section>
