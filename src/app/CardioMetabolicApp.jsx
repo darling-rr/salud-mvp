@@ -794,7 +794,7 @@ useEffect(() => {
     }
     if (has("pan")) {
       out.push({
-        title: "Reducir pan/harinas y subir comida real",
+        title: "Reducir pan/harinas y aumentar comida saludablemente nutritiva",
         tips: ["Cambia 1 pan por fruta/yoghurt natural", "Incluye legumbres 2–3x/sem", "Más verduras en almuerzo/cena"],
       });
     }
