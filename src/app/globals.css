@@ -1,26 +1,34 @@
 @import "tailwindcss";
 
+/* ✅ Fuerza al navegador a tratar la UI como “light” (inputs/selects incluidos) */
 :root {
+  color-scheme: light;
+
   --background: #ffffff;
   --foreground: #171717;
-}
 
-@theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ✅ Mantén SIEMPRE modo claro. (Elimina el cambio automático por dark mode del sistema) */
+/* ❌ BORRADO: @media (prefers-color-scheme: dark) { ... } */
 
+html,
 body {
+  color-scheme: light;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ✅ Blindaje extra para formularios (Android suele “tocar” inputs en dark mode) */
+input,
+select,
+textarea,
+button {
+  color-scheme: light;
 }

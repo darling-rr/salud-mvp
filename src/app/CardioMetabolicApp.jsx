@@ -51,7 +51,7 @@ const alcoholLabel = (cat) => {
 /* -------------------- UI Components -------------------- */
 function Badge({ children }) {
   return (
-    <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs text-gray-700 bg-white">
+    <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700">
       {children}
     </span>
   );
@@ -64,8 +64,10 @@ function Pill({ children, onClick, active = false }) {
       onClick={onClick}
       className={classNames(
         "rounded-full border px-3 py-1 text-xs transition active:scale-[0.99]",
-        active ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 hover:bg-gray-50"
+        "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+        active ? "bg-slate-900 text-white border-slate-900 hover:bg-slate-900" : ""
       )}
+      style={{ colorScheme: "light" }}
     >
       {children}
     </button>
@@ -91,23 +93,24 @@ function Modal({ open, title, onClose, children }) {
   const stop = (e) => e.stopPropagation();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose} style={{ colorScheme: "light" }}>
       <div className="absolute inset-0 bg-black/30" />
-      <div className="relative w-full max-w-xl rounded-2xl bg-white border shadow-lg p-5" onClick={stop}>
+      <div
+        className="relative w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-lg"
+        onClick={stop}
+      >
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="text-lg font-semibold">{title}</div>
-          </div>
+          <div className="text-lg font-semibold text-slate-900">{title}</div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border px-3 py-1 text-sm hover:bg-gray-50"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-50"
             aria-label="Cerrar"
           >
             Cerrar
           </button>
         </div>
-        <div className="mt-4 text-sm text-gray-700 space-y-3">{children}</div>
+        <div className="mt-4 space-y-3 text-sm text-slate-700">{children}</div>
       </div>
     </div>
   );
@@ -115,10 +118,10 @@ function Modal({ open, title, onClose, children }) {
 
 function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, warning, quickPills }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" style={{ colorScheme: "light" }}>
       <label htmlFor={id} className="block">
-        <div className="text-sm font-medium">{label}</div>
-        {hint ? <div className="text-xs text-gray-500">{hint}</div> : null}
+        <div className="text-sm font-medium text-slate-900">{label}</div>
+        {hint ? <div className="text-xs text-slate-500">{hint}</div> : null}
       </label>
 
       <div className="flex items-center gap-2">
@@ -128,9 +131,12 @@ function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, w
           inputMode="decimal"
           pattern="[0-9]*[.,]?[0-9]*"
           className={classNames(
-            "w-full rounded-xl border px-3 py-2 outline-none focus:ring bg-white",
-            warning ? "border-gray-900" : ""
+            "w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-slate-200",
+            // ✅ blindado:
+            "bg-white text-slate-900 placeholder:text-slate-400 border-slate-200",
+            warning ? "border-slate-900" : ""
           )}
+          style={{ colorScheme: "light", WebkitTextFillColor: "inherit" }}
           placeholder={placeholder}
           value={value}
           onChange={(e) => {
@@ -139,7 +145,7 @@ function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, w
           }}
           aria-label={label}
         />
-        {suffix ? <span className="text-sm text-gray-600">{suffix}</span> : null}
+        {suffix ? <span className="text-sm text-slate-600">{suffix}</span> : null}
       </div>
 
       {quickPills?.length ? (
@@ -153,7 +159,7 @@ function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, w
       ) : null}
 
       {warning ? (
-        <div className="text-xs text-gray-700">
+        <div className="text-xs text-slate-700">
           <Badge>Revisa</Badge> <span className="ml-1">{warning}</span>
         </div>
       ) : null}
@@ -163,14 +169,15 @@ function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, w
 
 function Select({ id, label, value, onChange, options, hint }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" style={{ colorScheme: "light" }}>
       <label htmlFor={id} className="block">
-        <div className="text-sm font-medium">{label}</div>
-        {hint ? <div className="text-xs text-gray-500">{hint}</div> : null}
+        <div className="text-sm font-medium text-slate-900">{label}</div>
+        {hint ? <div className="text-xs text-slate-500">{hint}</div> : null}
       </label>
       <select
         id={id}
-        className="w-full rounded-xl border px-3 py-2 outline-none focus:ring bg-white"
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-slate-200"
+        style={{ colorScheme: "light" }}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
@@ -187,6 +194,27 @@ function Select({ id, label, value, onChange, options, hint }) {
 
 /* -------------------- Main App -------------------- */
 export default function CardioMetabolicApp() {
+  // ✅ Blindaje global: fuerza light scheme y elimina clase dark si existe
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+
+    html.style.colorScheme = "light";
+    body.style.colorScheme = "light";
+
+    // Si Tailwind dark mode por class estuviera activo, lo quitamos
+    html.classList.remove("dark");
+
+    // Algunos navegadores cambian inputs, así que reforzamos
+    html.setAttribute("data-force-light", "true");
+
+    return () => {
+      html.style.colorScheme = "";
+      body.style.colorScheme = "";
+      html.removeAttribute("data-force-light");
+    };
+  }, []);
+
   // Wizard
   const steps = [
     { key: "datos", title: "Datos" },
@@ -264,47 +292,6 @@ export default function CardioMetabolicApp() {
   const [easyFatigue, setEasyFatigue] = useState("no"); // no|yes
   const [stressFreq, setStressFreq] = useState("sometimes"); // never|sometimes|often
 
-  // ✅ Función real para guardar (tabla: assessments; columnas: answers, score, risk_level)
-async function guardarEvaluacion({
-  answers,
-  score,
-  riskLevel,
-  mvqAwareness,
-  mvqMonthly,
-  mvqReco
-}) {
-  console.log("🟢 guardarEvaluacion llamada", { score, riskLevel });
-
-  if (!supabase) {
-    console.error("❌ Supabase no configurado (env vars faltantes)");
-    return { ok: false, error: "supabase_not_configured" };
-  }
-
-  const { data, error } = await supabase
-    .from("assessments")
-    .insert([
-      {
-        answers,
-        score,
-        risk_level: riskLevel,
-         mvq_awareness: mvqAwareness,
-      mvq_monthly: mvqMonthly,
-      mvq_reco: mvqReco
-         // tu columna en Supabase es risk_level ✅
-      },
-    ])
-    .select();
-
-  console.log("🟡 resultado insert", { data, error });
-
-  if (error) {
-    console.error("❌ Error guardando evaluación:", error);
-    return { ok: false, error };
-  }
-
-  return { ok: true, data };
-}
-
   // -------------------- Validación de mercado (MVP) --------------------
   const [mvqAwareness, setMvqAwareness] = useState(""); // "known" | "suspected" | "didntknow"
   const [mvqMonthly, setMvqMonthly] = useState(""); // "yes" | "maybe" | "no"
@@ -313,7 +300,28 @@ async function guardarEvaluacion({
 
   // Refs para scroll
   const topRef = useRef(null);
-  const summaryRef = useRef(null);
+
+  // ✅ Función real para guardar (tabla: assessments; columnas: answers, score, risk_level)
+  async function guardarEvaluacion({ answers, score, riskLevel, mvqAwareness, mvqMonthly, mvqReco }) {
+    if (!supabase) return { ok: false, error: "supabase_not_configured" };
+
+    const { data, error } = await supabase
+      .from("assessments")
+      .insert([
+        {
+          answers,
+          score,
+          risk_level: riskLevel,
+          mvq_awareness: mvqAwareness,
+          mvq_monthly: mvqMonthly,
+          mvq_reco: mvqReco,
+        },
+      ])
+      .select();
+
+    if (error) return { ok: false, error };
+    return { ok: true, data };
+  }
 
   const computed = useMemo(() => {
     const A = toNum(age);
@@ -357,7 +365,7 @@ async function guardarEvaluacion({
     const dx = [];
     const redFlags = [];
 
-    const contrib = []; // {type,label,points}
+    const contrib = [];
     const add = (type, label, points) => {
       if (!points) return;
       contrib.push({ type, label, points });
@@ -375,7 +383,6 @@ async function guardarEvaluacion({
         score += 4;
         add("nomod", "Edad (35–44 años)", 4);
       }
-
       if (A >= 45) risksNoMod.push("Edad (≥45 años)");
     }
 
@@ -402,7 +409,7 @@ async function guardarEvaluacion({
       }
     }
 
-    // Cintura (opcional)
+    // Cintura
     if (WC !== null) {
       const high = sex === "M" ? 102 : 88;
       const mid = sex === "M" ? 94 : 80;
@@ -417,7 +424,7 @@ async function guardarEvaluacion({
       }
     }
 
-    // Presión arterial (opcional)
+    // Presión
     const hasBP = SYS !== null && DIA !== null;
     if (hasBP) {
       if (SYS >= 180 || DIA >= 120) {
@@ -437,7 +444,7 @@ async function guardarEvaluacion({
       }
     }
 
-    // --- SAL AÑADIDA ---
+    // Sal extra
     if (extraSalt === "often") {
       score += 4;
       risksMod.push("Añade sal extra frecuentemente");
@@ -447,7 +454,7 @@ async function guardarEvaluacion({
       add("mod", "Añade sal extra ocasionalmente", 2);
     }
 
-    // --- BEBIDAS ENERGÉTICAS ---
+    // Energéticas
     if (energy !== null) {
       if (energy >= 5) {
         score += 5;
@@ -459,7 +466,7 @@ async function guardarEvaluacion({
       }
     }
 
-    // Labs (opcionales)
+    // Labs
     if (G !== null) {
       if (G >= 126) {
         score += 16;
@@ -532,7 +539,6 @@ async function guardarEvaluacion({
     // Alcohol
     const drinksW = toNum(alcoholDrinksPerWeek);
     const alcCat = alcoholCategory({ drinksPerWeek: drinksW ?? 0, binge: alcoholBinge, sex });
-
     if (alcCat === "moderate") {
       score += 2;
       risksMod.push("Alcohol moderado");
@@ -599,7 +605,7 @@ async function guardarEvaluacion({
       add("mod", "Estrés (a veces)", 1);
     }
 
-    // --- DIAGNÓSTICOS / CONDICIONES ---
+    // Dx
     if (hasHTN === "yes") {
       score += 10;
       dx.push("Hipertensión diagnosticada");
@@ -632,7 +638,7 @@ async function guardarEvaluacion({
       redFlags.push("Antecedente cardiovascular: requiere control médico regular y plan personalizado.");
     }
 
-    // --- BANDERAS ROJAS ---
+    // Red flags
     if (chestPain === "yes") {
       redFlags.push(
         "Dolor/opresión en el pecho: si es nuevo, intenso, al esfuerzo o con falta de aire/sudor/náuseas → consulta URGENTE."
@@ -648,7 +654,6 @@ async function guardarEvaluacion({
     if (score >= 55) level = "Alto";
     else if (score >= 30) level = "Moderado";
 
-    // Validaciones suaves
     const warnings = {};
     if (A !== null && (A < 12 || A > 110)) warnings.age = "Edad fuera de rango típico (12–110).";
     if (Hcm !== null && (Hcm < 120 || Hcm > 220)) warnings.height = "Talla fuera de rango típico (120–220 cm).";
@@ -659,7 +664,6 @@ async function guardarEvaluacion({
     if (G !== null && (G < 40 || G > 600)) warnings.glucose = "Glicemia fuera de rango típico (40–600 mg/dL).";
     if (A1c !== null && (A1c < 3 || A1c > 20)) warnings.hba1c = "HbA1c fuera de rango típico (3–20%).";
     if (CT !== null && (CT < 80 || CT > 500)) warnings.chol = "Colesterol total fuera de rango típico (80–500 mg/dL).";
-    if (energy !== null && (energy < 0 || energy > 50)) warnings.energy = "Energéticas fuera de rango típico (0–50/sem).";
 
     return {
       A,
@@ -672,23 +676,8 @@ async function guardarEvaluacion({
       redFlags,
       warnings,
       contrib,
-      alcohol: {
-        drinksPerWeek: drinksW,
-        binge: alcoholBinge,
-        category: alcCat,
-      },
-      bp: {
-        sys: SYS,
-        dia: DIA,
-        hasBP,
-      },
-      missing: {
-        waist: WC === null,
-        bp: !hasBP,
-        glucose: G === null,
-        hba1c: A1c === null,
-        cholTotal: CT === null,
-      },
+      alcohol: { drinksPerWeek: drinksW, binge: alcoholBinge, category: alcCat },
+      bp: { sys: SYS, dia: DIA, hasBP },
     };
   }, [
     age,
@@ -724,249 +713,7 @@ async function guardarEvaluacion({
     stressFreq,
   ]);
 
-  // Acciones prioritarias + microtips
-  const actionsWithTips = useMemo(() => {
-    const has = (txt) => computed.risksMod.some((r) => r.toLowerCase().includes(txt.toLowerCase()));
-    const out = [];
-
-    if (has("presión arterial")) {
-      out.push({
-        title: "Bajar/Controlar presión arterial",
-        tips: [
-          "Si puedes: 2–3 mediciones en días distintos (reposo 5 min)",
-          "Reduce sal y ultraprocesados; más potasio (fruta/verdura/legumbres)",
-          "Actividad: caminar + fuerza 2x/sem; limita alcohol",
-        ],
-      });
-    }
-    if (has("sal extra")) {
-      out.push({
-        title: "Reducir sal añadida",
-        tips: ["No agregues sal al plato", "Usa limón/ajo/merken/hierbas para sabor", "Evita caldos/cubitos y snacks salados"],
-      });
-    }
-    if (has("energéticas")) {
-      out.push({
-        title: "Reducir bebidas energéticas",
-        tips: ["Cambia por agua/infusión", "Evita energéticas tarde (mejora sueño)", "Si necesitas: café 1–2 al día (sin azúcar)"],
-      });
-    }
-    if (has("imc")) {
-      out.push({
-        title: "Bajar 5–10% del peso (si aplica)",
-        tips: ["Prioriza proteína en cada comida", "Aumenta fibra (verduras/legumbres)", "Camina diario + fuerza 2x/sem"],
-      });
-    }
-    if (has("actividad física")) {
-      out.push({
-        title: "Subir actividad física",
-        tips: ["Meta: 150 min/sem", "Empieza con 10–20 min y sube", "Fuerza 2 días/sem (sentadillas, push-ups, remo)"],
-      });
-    }
-    if (has("pan")) {
-      out.push({
-        title: "Reducir pan/harinas y subir comida real",
-        tips: ["Cambia 1 pan por fruta/yoghurt natural", "Incluye legumbres 2–3x/sem", "Más verduras en almuerzo/cena"],
-      });
-    }
-    if (has("azúcares") || has("bebidas")) {
-      out.push({
-        title: "Bajar bebidas azucaradas/dulces",
-        tips: ["Agua/infusiones sin azúcar", "Si antojo: fruta + proteína", "Reduce de a 1 por semana"],
-      });
-    }
-    if (has("frituras")) {
-      out.push({
-        title: "Bajar frituras",
-        tips: ["Horno/plancha/airfryer", "Aceite medido (1 cdita)", "Planifica 1 “fritura” por semana máx."],
-      });
-    }
-    if (has("sueño")) {
-      out.push({
-        title: "Mejorar sueño",
-        tips: ["Rutina fija (hora de dormir)", "Pantallas fuera 60 min antes", "Cafeína solo hasta mediodía"],
-      });
-    }
-    if (has("estrés")) {
-      out.push({
-        title: "Manejo del estrés",
-        tips: ["Respiración 2–3 min (4-6)", "Pausas cortas + caminata", "Pide apoyo si te supera"],
-      });
-    }
-    if (has("tabaquismo")) {
-      out.push({
-        title: "Plan para dejar tabaco",
-        tips: ["Define fecha/plan", "Apoyo CESFAM", "Reemplaza rutinas (chicle/agua/caminar)"],
-      });
-    }
-    if (has("alcohol")) {
-      out.push({
-        title: "Reducir alcohol/atracones",
-        tips: ["Meta: 0–1 trago en el día", "Evita atracones (binge)", "Alterna con agua y planifica el “sí”"],
-      });
-    }
-
-    if (out.length === 0) {
-      out.push({
-        title: "Mantener hábitos saludables",
-        tips: ["Verduras/legumbres/proteína", "150 min/sem + fuerza 2 días", "Dormir 7–8 h y pausas de estrés"],
-      });
-    }
-
-    return out.slice(0, 3);
-  }, [computed.risksMod]);
-
-  const [openTipIndex, setOpenTipIndex] = useState(null);
-
-  // Drivers: top 3 por puntos
-  const drivers = useMemo(() => {
-    const top = [...(computed.contrib ?? [])].sort((a, b) => b.points - a.points).slice(0, 3);
-    return top.map((x) => x.label);
-  }, [computed.contrib]);
-
-  // Controles CESFAM
-  const suggestedControls = useMemo(() => {
-    const A = computed.A;
-    if (A === null) return [];
-
-    const items = [];
-
-    if (A >= 65) {
-      items.push({
-        key: "EMPAM",
-        title: "EMPAM (Adulto Mayor)",
-        detail: "Desde 65 años: control preventivo integral en APS.",
-        ask: "Qué pedir: “EMPAM” en SOME/Admisión del CESFAM.",
-      });
-    } else {
-      items.push({
-        key: "EMP",
-        title: "EMP (Examen de Medicina Preventiva)",
-        detail: "Control preventivo para pesquisa y consejerías en APS.",
-        ask: "Qué pedir: “EMP” en SOME/Admisión del CESFAM.",
-      });
-    }
-
-    if (sex === "F" && A >= 25 && A <= 64) {
-      items.push({
-        key: "PAP",
-        title: "PAP (cáncer cervicouterino)",
-        detail: "Mujeres 25–64: tamizaje con PAP cada 3 años (según historial y programa).",
-        ask: "Qué pedir: “toma de PAP” y confirmar tu fecha de último control.",
-      });
-    }
-
-    if (sex === "F" && A >= 50 && A <= 69) {
-      items.push({
-        key: "MAMO",
-        title: "Mamografía (tamizaje cáncer de mama)",
-        detail: "Mujeres 50–69: mamografía como tamizaje (según programa local/criterio clínico).",
-        ask: "Qué pedir: “mamografía de tamizaje” y revisar agenda/derivación.",
-      });
-    }
-
-    if (sex === "M" && A >= 50 && A <= 70) {
-      items.push({
-        key: "PROS",
-        title: "Próstata (PSA: decisión informada)",
-        detail:
-          "Hombres 50–70: conversación y eventual PSA según preferencia/riesgo. Si familiar 1er grado, puede considerarse desde 40.",
-        ask: "Qué pedir: “conversación PSA / control preventivo” en APS.",
-      });
-    }
-
-    const bpHigh = computed.bp?.hasBP && (computed.bp.sys >= 140 || computed.bp.dia >= 90);
-    const bpAlert = computed.bp?.hasBP && !bpHigh && (computed.bp.sys >= 130 || computed.bp.dia >= 85);
-
-    if (hasHTN === "yes" || bpHigh || bpAlert) {
-      items.push({
-        key: "HTA",
-        title: "Control de presión arterial (APS)",
-        detail:
-          hasHTN === "yes"
-            ? "Seguimiento periódico, medición de PA y adherencia a tratamiento según APS."
-            : "Confirmar mediciones (ideal 2–3 en días distintos) y definir necesidad de control/plan.",
-        ask: "Qué pedir: “control de presión arterial / cardiovascular” (box enfermería o médico según CESFAM).",
-      });
-    }
-
-    if (hasDM === "yes") {
-      items.push({
-        key: "DM",
-        title: "Control Diabetes",
-        detail: "Controles regulares (HbA1c según indicación, pie diabético, etc.) en APS.",
-        ask: "Qué pedir: “control DM2”, “HbA1c” y “examen de pie” según calendario.",
-      });
-    }
-    if (hasDyslip === "yes") {
-      items.push({
-        key: "LIP",
-        title: "Control de lípidos",
-        detail: "Seguimiento de perfil lipídico y tratamiento según indicación.",
-        ask: "Qué pedir: “perfil lipídico” y revisión de tratamiento/objetivos.",
-      });
-    }
-    if (thyroidDx === "hypo") {
-      items.push({
-        key: "THY_HYPO",
-        title: "Control tiroideo (hipotiroidismo)",
-        detail: "TSH y, si corresponde, T4 libre según indicación. Adherencia a tratamiento.",
-        ask: "Qué pedir: “control tiroideo” + revisión de dosis/TSH.",
-      });
-    }
-    if (thyroidDx === "hyper") {
-      items.push({
-        key: "THY_HYPER",
-        title: "Control tiroideo (hipertiroidismo)",
-        detail: "TSH y T4 libre según indicación. Si palpitaciones/temblores/baja de peso: consulta pronto.",
-        ask: "Qué pedir: “control tiroideo” y comentar síntomas (palpitaciones/temblor).",
-      });
-    }
-    if (hasCVD === "yes") {
-      items.push({
-        key: "CVD",
-        title: "Seguimiento cardiovascular",
-        detail: "Antecedente cardiovascular: control médico regular y plan personalizado.",
-        ask: "Qué pedir: “control cardiología/medicina” + revisión de fármacos y metas.",
-      });
-    }
-
-    if (computed.level !== "Bajo") {
-      items.push({
-        key: "CM",
-        title: "Control cardiometabólico (APS)",
-        detail:
-          "Evaluación de PA, glicemia/HbA1c y lípidos según criterio clínico y disponibilidad (especialmente si hay valores alterados o síntomas).",
-        ask: "Qué pedir: “control cardiometabólico / cardiovascular” y exámenes según criterio.",
-      });
-    }
-
-    return items;
-  }, [computed.A, computed.level, computed.bp, sex, hasHTN, hasDM, hasDyslip, thyroidDx, hasCVD]);
-
-  const referencesText = useMemo(() => {
-    const keys = new Set(suggestedControls.map((x) => x.key));
-    const refs = [];
-    if (keys.has("EMP") || keys.has("EMPAM")) refs.push("EMP/EMPAM en APS");
-    if (keys.has("PAP")) refs.push("PAP 25–64: cada 3 años (programa MINSAL)");
-    if (keys.has("MAMO")) refs.push("Mamografía 50–69: tamizaje (programa MINSAL)");
-    if (keys.has("PROS")) refs.push("Próstata 50–70: decisión informada (programa/criterio)");
-    return refs.length ? `Referencias (orientativas): ${refs.join(" · ")}.` : "";
-  }, [suggestedControls]);
-
-  // “Completar datos faltantes”
-  const missingList = useMemo(() => {
-    const m = computed.missing;
-    const out = [];
-    if (m.waist) out.push({ label: "Cintura", goStep: 0 });
-    if (m.bp) out.push({ label: "Presión arterial", goStep: 0 });
-    if (m.glucose) out.push({ label: "Glicemia", goStep: 0 });
-    if (m.hba1c) out.push({ label: "HbA1c", goStep: 0 });
-    if (m.cholTotal) out.push({ label: "Colesterol total", goStep: 0 });
-    return out;
-  }, [computed.missing]);
-
-  // Cargar historial
+  // Guardar historial
   useEffect(() => {
     try {
       const raw = localStorage.getItem("cm_last");
@@ -978,43 +725,34 @@ async function guardarEvaluacion({
     } catch {}
   }, []);
 
-  // ✅ Guardar SOLO al llegar a “Resultado”
+  // Guardar SOLO al llegar a resultado
   useEffect(() => {
     if (step !== 3) {
       savedForThisResultRef.current = false;
-      savedToSupabaseRef.current = false; // reset para el próximo resultado
+      savedToSupabaseRef.current = false;
       return;
     }
     if (savedForThisResultRef.current) return;
     savedForThisResultRef.current = true;
 
-    // 1) Guardar local
+    // Local
     try {
-      const payload = {
-        date: new Date().toISOString(),
-        score: computed.score,
-        level: computed.level,
-      };
-
+      const payload = { date: new Date().toISOString(), score: computed.score, level: computed.level };
       localStorage.setItem("cm_last", JSON.stringify(payload));
       setLast(payload);
 
       setHistory((prev) => {
         const prevArr = Array.isArray(prev) ? prev : [];
         const next = [payload, ...prevArr].slice(0, 12);
-        try {
-          localStorage.setItem("cm_history", JSON.stringify(next));
-        } catch {}
+        localStorage.setItem("cm_history", JSON.stringify(next));
         return next;
       });
     } catch {}
 
-    // 2) Guardar Supabase (una vez por resultado)
+    // Supabase
     (async () => {
       if (savedToSupabaseRef.current) return;
       savedToSupabaseRef.current = true;
-
-      console.log("🧪 Intentando guardar en Supabase desde step 3");
 
       const answers = {
         age,
@@ -1051,18 +789,17 @@ async function guardarEvaluacion({
       };
 
       const res = await guardarEvaluacion({
-  answers,
-  score: computed.score,
-  riskLevel: computed.level,
-  mvqAwareness,
-  mvqMonthly,
-  mvqReco
-});
+        answers,
+        score: computed.score,
+        riskLevel: computed.level,
+        mvqAwareness,
+        mvqMonthly,
+        mvqReco,
+      });
 
-     
-if (res.ok && res.data?.[0]?.id) {
-  localStorage.setItem("cm_last_assessment_id", res.data[0].id);
-}
+      if (res.ok && res.data?.[0]?.id) {
+        localStorage.setItem("cm_last_assessment_id", res.data[0].id);
+      }
     })();
   }, [
     step,
@@ -1099,9 +836,12 @@ if (res.ok && res.data?.[0]?.id) {
     chestPain,
     easyFatigue,
     stressFreq,
+    mvqAwareness,
+    mvqMonthly,
+    mvqReco,
   ]);
 
-  // Reset de encuesta cuando entras a Resultado (para que pueda responder de nuevo)
+  // Reset encuesta al entrar en Resultado
   useEffect(() => {
     if (step !== 3) return;
     setMvqSaved(false);
@@ -1110,7 +850,6 @@ if (res.ok && res.data?.[0]?.id) {
     setMvqReco("");
   }, [step]);
 
-  // Progreso wizard
   const progressPct = useMemo(() => Math.round(((step + 1) / steps.length) * 100), [step]);
 
   const goStep = (i) => {
@@ -1118,37 +857,23 @@ if (res.ok && res.data?.[0]?.id) {
     setTimeout(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   };
 
-  // Resumen
-  const buildSummaryText = () => {
-    const d = new Date().toLocaleDateString();
-    const lines = [
-      `Evaluación cardiometabólica (MVP) — ${d}`,
-      `Score: ${computed.score}/100 · Nivel: ${computed.level}`,
-    ];
-    if (drivers?.length) lines.push(`Principales factores detectados: ${drivers.join(" · ")}`);
-
-    if (computed.bp?.hasBP) lines.push(`Presión arterial: ${computed.bp.sys}/${computed.bp.dia} mmHg`);
-    else lines.push(`Presión arterial: no informada`);
-
-    lines.push(`Sal añadida: ${extraSalt === "never" ? "No" : extraSalt === "sometimes" ? "A veces" : "Frecuentemente"}`);
-
-    const e = toNum(energyDrinksPerWeek);
-    lines.push(`Energéticas: ${e === null ? "no informado" : `${e} veces/sem`}`);
-
-    const alcTxt = `Alcohol: ${alcoholLabel(computed.alcohol?.category)} (${computed.alcohol?.drinksPerWeek ?? 0} tragos/sem, atracón: ${
-      computed.alcohol?.binge === "yes" ? "sí" : "no"
-    })`;
-    lines.push(alcTxt);
-
-    if (actionsWithTips?.length) lines.push(`Acciones prioritarias: ${actionsWithTips.map((a) => a.title).join(" · ")}`);
-    if (computed.redFlags?.length) lines.push(`Banderas rojas: ${computed.redFlags.join(" · ")}`);
-    if (suggestedControls?.length) lines.push(`Controles sugeridos: ${suggestedControls.map((c) => c.title).join(" · ")}`);
-    lines.push(`*Orientación preventiva. No reemplaza evaluación clínica.`);
-    return lines.join("\n");
-  };
+  // Drivers top 3
+  const drivers = useMemo(() => {
+    const top = [...(computed.contrib ?? [])].sort((a, b) => b.points - a.points).slice(0, 3);
+    return top.map((x) => x.label);
+  }, [computed.contrib]);
 
   const shareSummary = async () => {
-    const text = buildSummaryText();
+    const d = new Date().toLocaleDateString();
+    const text = [
+      `Evaluación cardiometabólica (MVP) — ${d}`,
+      `Score: ${computed.score}/100 · Nivel: ${computed.level}`,
+      drivers?.length ? `Principales factores: ${drivers.join(" · ")}` : "",
+      `*Orientación preventiva. No reemplaza evaluación clínica.`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     try {
       if (navigator.share) {
         await navigator.share({ title: "Resumen cardiometabólico", text });
@@ -1157,108 +882,63 @@ if (res.ok && res.data?.[0]?.id) {
     } catch {}
     try {
       await navigator.clipboard.writeText(text);
-      alert("Resumen copiado al portapapeles ✅");
+      alert("Resumen copiado ✅");
     } catch {
-      alert("No se pudo copiar. Puedes seleccionar y copiar el resumen manualmente.");
+      alert("No se pudo copiar. Copia manualmente.");
     }
   };
 
- const saveMarketValidation = async () => {
-  if (!mvqAwareness || !mvqMonthly || !mvqReco) {
-    alert("Porfa responde las 3 preguntas 🙂");
-    return;
-  }
+  const saveMarketValidation = async () => {
+    if (!mvqAwareness || !mvqMonthly || !mvqReco) {
+      alert("Responde las 3 preguntas 🙂");
+      return;
+    }
 
-  // guarda local (lo que ya hacías)
-  try {
-    const payload = {
-      date: new Date().toISOString(),
-      score: computed.score,
-      level: computed.level,
-      awareness: mvqAwareness,
-      monthly: mvqMonthly,
-      recommendations: mvqReco,
-    };
+    try {
+      const payload = {
+        date: new Date().toISOString(),
+        score: computed.score,
+        level: computed.level,
+        awareness: mvqAwareness,
+        monthly: mvqMonthly,
+        recommendations: mvqReco,
+      };
+      const raw = localStorage.getItem("cm_market_validation");
+      const prev = raw ? JSON.parse(raw) : [];
+      const next = [payload, ...(Array.isArray(prev) ? prev : [])].slice(0, 200);
+      localStorage.setItem("cm_market_validation", JSON.stringify(next));
+    } catch {}
 
-    const raw = localStorage.getItem("cm_market_validation");
-    const prev = raw ? JSON.parse(raw) : [];
-    const next = [payload, ...(Array.isArray(prev) ? prev : [])].slice(0, 200);
-    localStorage.setItem("cm_market_validation", JSON.stringify(next));
-  } catch {}
+    try {
+      const id = localStorage.getItem("cm_last_assessment_id");
+      if (!supabase) throw new Error("supabase_not_configured");
+      if (!id) throw new Error("missing_assessment_id");
 
-  // ✅ guardar en supabase (update a la última evaluación)
-  try {
-    const id = localStorage.getItem("cm_last_assessment_id");
+      const { error } = await supabase
+        .from("assessments")
+        .update({
+          mvq_awareness: mvqAwareness,
+          mvq_monthly: mvqMonthly,
+          mvq_reco: mvqReco,
+        })
+        .eq("id", id);
 
-    if (!supabase) throw new Error("supabase_not_configured");
-    if (!id) throw new Error("missing_assessment_id");
+      if (error) throw error;
 
-    const { error } = await supabase
-      .from("assessments")
-      .update({
-        mvq_awareness: mvqAwareness,
-        mvq_monthly: mvqMonthly,
-        mvq_reco: mvqReco,
-      })
-      .eq("id", id);
-
-    if (error) throw error;
-
-    setMvqSaved(true);
-  } catch (e) {
-    console.error("No se pudo guardar MVQ en Supabase:", e);
-    // igual marcamos como guardado localmente para no molestar al usuario
-    setMvqSaved(true);
-  }
-};
-
-  const printPDF = () => {
-    const text = buildSummaryText().replace(/\n/g, "<br/>");
-    const html = `
-      <html>
-        <head>
-          <title>Resumen cardiometabólico</title>
-          <meta charset="utf-8" />
-          <style>
-            body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 24px; }
-            .card { border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px; }
-            .h1 { font-size: 18px; font-weight: 700; margin: 0 0 8px; }
-            .muted { color: #374151; font-size: 12px; }
-            .p { font-size: 13px; line-height: 1.5; color: #111827; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="h1">Resumen cardiometabólico</div>
-            <div class="p">${text}</div>
-            <div class="muted" style="margin-top:12px;">
-              *Orientación preventiva. Si hay síntomas importantes o enfermedad crónica, consulta.
-            </div>
-          </div>
-          <script>window.onload = () => { window.print(); }</script>
-        </body>
-      </html>
-    `;
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+      setMvqSaved(true);
+    } catch (e) {
+      console.error("MVQ supabase error:", e);
+      setMvqSaved(true);
+    }
   };
 
-  // Estilo nivel
-  const levelChip = useMemo(() => {
-    const txt = computed.level === "Bajo" ? "Prevención" : computed.level === "Moderado" ? "A mejorar" : "Prioridad";
-    return txt;
-  }, [computed.level]);
-
-  // Footer navegación (abajo)
   const StepNav = () => (
     <div className="flex items-center justify-between pt-6">
       <button
         type="button"
         onClick={() => goStep(step - 1)}
-        className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50 transition disabled:opacity-50"
+        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
+        style={{ colorScheme: "light" }}
         disabled={step === 0}
       >
         Atrás
@@ -1267,163 +947,81 @@ if (res.ok && res.data?.[0]?.id) {
       <button
         type="button"
         onClick={() => goStep(step + 1)}
-        className="rounded-xl border px-4 py-2 text-sm bg-gray-900 text-white hover:opacity-95 transition disabled:opacity-50"
+        className="rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white hover:opacity-95 transition disabled:opacity-50"
+        style={{ colorScheme: "light" }}
         disabled={step === steps.length - 1}
       >
         Siguiente
       </button>
     </div>
   );
-const heroCards = [
-    {
-      title: "Procesamiento automático",
-      description: "Tus respuestas se procesan automáticamente.",
-      icon: (
-        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M10.3 3.2 9.8 5a7.5 7.5 0 0 0-1.7.7L6.4 4.8 4.8 6.4l.9 1.7c-.3.5-.5 1.1-.7 1.7l-1.8.5v2.4l1.8.5c.1.6.4 1.2.7 1.7l-.9 1.7 1.6 1.6 1.7-.9c.5.3 1.1.5 1.7.7l.5 1.8h2.4l.5-1.8c.6-.1 1.2-.4 1.7-.7l1.7.9 1.6-1.6-.9-1.7c.3-.5.5-1.1.7-1.7l1.8-.5v-2.4l-1.8-.5a7.5 7.5 0 0 0-.7-1.7l.9-1.7-1.6-1.6-1.7.9a7.5 7.5 0 0 0-1.7-.7l-.5-1.8h-2.4Z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      ),
-    },
-    {
-      title: "Privacidad protegida",
-      description: "No solicitamos datos personales identificables.",
-      icon: (
-        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M12 3 5 6v5.3c0 4.4 2.9 8.4 7 9.7 4.1-1.3 7-5.3 7-9.7V6l-7-3Z" />
-          <path d="M9.7 11.8V10a2.3 2.3 0 0 1 4.6 0v1.8" />
-          <rect x="8.8" y="11.8" width="6.4" height="5" rx="1.2" />
-        </svg>
-      ),
-    },
-    {
-      title: "¿Cómo se calcula?",
-      description: "Basado en factores clínicos y hábitos de salud.",
-      icon: (
-        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <circle cx="11" cy="11" r="7" />
-          <path d="m20 20-3.2-3.2" />
-          <path d="M11 14.2v-.2c0-1 .8-1.5 1.4-1.9.6-.4 1.2-.9 1.2-1.8a2.6 2.6 0 0 0-5.2.2" />
-          <circle cx="11" cy="17" r=".8" fill="currentColor" stroke="none" />
-        </svg>
-      ),
-      onClick: () => setOpenHow(true),
-    },
-  ];
 
   return (
-   <main ref={topRef} className="min-h-screen bg-[#f6f7fb] p-3 sm:p-4 md:p-7">
+    <main
+      ref={topRef}
+      className="min-h-screen bg-[#f6f7fb] text-slate-900 p-3 sm:p-4 md:p-7"
+      style={{ colorScheme: "light" }}
+    >
       <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-5">
+        {/* Header */}
+        <header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" style={{ colorScheme: "light" }}>
+          <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Evaluación cardiometabólica (MVP)</h1>
+          <p className="mt-1 text-sm text-slate-600 sm:text-base">
+            En 2 minutos identifica tus principales puntos a mejorar.
+          </p>
 
-      
-           {/* HERO */}
-<header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-  <div className="space-y-4">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              onClick={shareSummary}
+              className="rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:opacity-95"
+              style={{ colorScheme: "light" }}
+              type="button"
+            >
+              Compartir resumen
+            </button>
 
-    {/* Icon + Title */}
-    <div className="space-y-2">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-          <circle cx="12" cy="7" r="3" />
-          <rect x="9" y="11" width="6" height="10" rx="2" />
-        </svg>
-      </div>
+            <button
+              onClick={() => setOpenHow(true)}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              style={{ colorScheme: "light" }}
+              type="button"
+            >
+              ¿Cómo se calcula?
+            </button>
 
-      <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
-        Evaluación cardiometabólica (MVP)
-      </h1>
-
-      <p className="text-sm text-slate-600 sm:text-base">
-        En 2 minutos identifica tus principales puntos a mejorar y qué controles pedir en APS.
-      </p>
-    </div>
-
-    {/* Cards */}
-    <div className="space-y-2">
-      {heroCards.map((card) => {
-        const clickable = Boolean(card.onClick);
-        const Tag = clickable ? "button" : "div";
-
-        return (
-          <Tag
-            key={card.title}
-            type={clickable ? "button" : undefined}
-            onClick={clickable ? card.onClick : undefined}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-left transition hover:bg-slate-50"
-          >
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700">
-                {card.icon}
-              </div>
-
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  {card.title}
-                </h3>
-                <p className="text-xs text-slate-600">
-                  {card.description}
-                </p>
-              </div>
-
-              {clickable && (
-                <span className="ml-auto text-xs text-slate-500">
-                  Ver más ›
-                </span>
-              )}
+            <div className="ml-auto flex items-center gap-2">
+              <Badge>Sin registro de datos</Badge>
+              <Badge>Modo claro fijo</Badge>
             </div>
-          </Tag>
-        );
-      })}
-    </div>
+          </div>
+        </header>
 
-    {/* Buttons */}
-    <div className="flex flex-col gap-2">
-      <button
-        onClick={shareSummary}
-        className="rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:opacity-95"
-      >
-        Compartir resumen
-      </button>
-
-      <button
-        onClick={printPDF}
-        className="rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:opacity-95"
-      >
-        Guardar PDF
-      </button>
-    </div>
-
-    {/* Badges */}
-    <div className="flex flex-wrap gap-2 text-xs text-slate-600">
-      <span className="rounded-full border px-3 py-1">Sin registro de datos</span>
-      <span className="rounded-full border px-3 py-1">Calculado en tu navegador</span>
-    </div>
-
-  </div>
-</header>
-
-        {/* Wizard header (tabs + barra) */}
-         <section className="rounded-[1.5rem] border border-slate-300 bg-white p-4 shadow-[0_2px_5px_rgba(0,0,0,0.04)] sm:rounded-[1.75rem] sm:p-5 md:rounded-[2rem] md:p-8">
+        {/* Wizard header */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" style={{ colorScheme: "light" }}>
           <div className="flex items-center justify-between gap-3">
-               <div className="text-lg font-semibold text-slate-900 sm:text-xl md:text-2xl lg:text-[2rem]">
-              Paso {step + 1} de {steps.length}: <span>{steps[step].title}</span>
+            <div className="text-base font-semibold text-slate-900 sm:text-lg">
+              Paso {step + 1} de {steps.length}: <span className="font-bold">{steps[step].title}</span>
             </div>
-              <div className="text-lg text-gray-600 sm:text-xl md:text-2xl lg:text-[2rem]">{progressPct}%</div>
-          </div>
-          <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-            <div className="h-full rounded-full bg-gray-900 transition-all" style={{ width: `${progressPct}%` }} />
+            <div className="text-base text-slate-600 sm:text-lg">{progressPct}%</div>
           </div>
 
-           <div className="mt-4 flex flex-wrap gap-2 sm:mt-5 sm:gap-3">
+          <div className="mt-3 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-full rounded-full bg-slate-900 transition-all" style={{ width: `${progressPct}%` }} />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
             {steps.map((s, i) => (
               <button
                 key={s.key}
                 type="button"
                 onClick={() => goStep(i)}
                 className={classNames(
-                      "rounded-full border border-slate-300 px-3 py-1.5 text-sm leading-tight transition sm:px-4 sm:py-2 sm:text-base md:px-6 md:text-xl lg:text-[1.9rem]",
-                  i === step ? "border-[#15244b] bg-[#15244b] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                  "rounded-full border px-3 py-2 text-sm transition",
+                  i === step
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 )}
+                style={{ colorScheme: "light" }}
               >
                 {s.title}
               </button>
@@ -1431,12 +1029,12 @@ const heroCards = [
           </div>
         </section>
 
-        {/* STEP 1: Datos */}
+        {/* Step 1 */}
         {step === 0 ? (
-          <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
+          <section className="rounded-2xl bg-white p-5 shadow-sm border border-slate-200 space-y-4" style={{ colorScheme: "light" }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Datos</h2>
-              <Badge>Opcional = no afecta si está vacío</Badge>
+              <h2 className="text-lg font-semibold text-slate-900">Datos</h2>
+              <Badge>Opcional = no afecta</Badge>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -1462,161 +1060,40 @@ const heroCards = [
                 onChange={setHeight}
                 placeholder="Ej: 177 o 1.77"
                 suffix="cm"
-                hint="Puedes escribir 1.77 y se interpretará como metros."
+                hint="Si escribes 1.77 se interpreta como metros."
                 warning={computed.warnings?.height}
               />
 
-              <NumericInput
-                id="waist"
-                label="Circunferencia de cintura (opcional)"
-                value={waist}
-                onChange={setWaist}
-                placeholder="Si no sabes, déjalo en blanco"
-                suffix="cm"
-                hint="Aumenta precisión del resultado."
-                warning={computed.warnings?.waist}
-              />
+              <NumericInput id="waist" label="Cintura (opcional)" value={waist} onChange={setWaist} placeholder="Opcional" suffix="cm" warning={computed.warnings?.waist} />
 
-              {/* Presión arterial (opcional) */}
-              <div className="space-y-2 md:col-span-2">
-                <div className="text-sm font-medium">Presión arterial (opcional)</div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <NumericInput
-                    id="bpSys"
-                    label="Sistólica"
-                    value={bpSys}
-                    onChange={setBpSys}
-                    placeholder="Ej: 120"
-                    suffix="mmHg"
-                    hint="Ideal: medir en reposo (5 min), sentado/a."
-                    warning={computed.warnings?.bpSys}
-                    quickPills={[
-                      { label: "110", value: 110 },
-                      { label: "120", value: 120 },
-                      { label: "130", value: 130 },
-                      { label: "140", value: 140 },
-                    ]}
-                  />
-                  <NumericInput
-                    id="bpDia"
-                    label="Diastólica"
-                    value={bpDia}
-                    onChange={setBpDia}
-                    placeholder="Ej: 80"
-                    suffix="mmHg"
-                    hint="Si no la sabes, puedes dejarlo en blanco (no afecta)."
-                    warning={computed.warnings?.bpDia}
-                    quickPills={[
-                      { label: "70", value: 70 },
-                      { label: "80", value: 80 },
-                      { label: "85", value: 85 },
-                      { label: "90", value: 90 },
-                    ]}
-                  />
-                </div>
-
-                {computed.bp?.hasBP ? (
-                  <div className="text-xs text-gray-600">
-                    Ingresado:{" "}
-                    <span className="font-semibold">
-                      {computed.bp.sys}/{computed.bp.dia} mmHg
-                    </span>
-                  </div>
-                ) : (
-                  <div className="text-xs text-gray-600">Si no la conoces, déjalo en blanco. El score funciona igual.</div>
-                )}
-              </div>
+              <NumericInput id="bpSys" label="PA sistólica (opcional)" value={bpSys} onChange={setBpSys} placeholder="Ej: 120" suffix="mmHg" warning={computed.warnings?.bpSys} />
+              <NumericInput id="bpDia" label="PA diastólica (opcional)" value={bpDia} onChange={setBpDia} placeholder="Ej: 80" suffix="mmHg" warning={computed.warnings?.bpDia} />
 
               <NumericInput id="glucose" label="Glicemia (opcional)" value={glucose} onChange={setGlucose} placeholder="Ej: 92" suffix="mg/dL" warning={computed.warnings?.glucose} />
-
               <NumericInput id="hba1c" label="HbA1c (opcional)" value={hba1c} onChange={setHba1c} placeholder="Ej: 5.4" suffix="%" warning={computed.warnings?.hba1c} />
-
               <NumericInput id="chol" label="Colesterol total (opcional)" value={cholTotal} onChange={setCholTotal} placeholder="Ej: 180" suffix="mg/dL" warning={computed.warnings?.chol} />
             </div>
-
-            {missingList.length ? (
-              <div className="rounded-xl border p-4">
-                <div className="font-semibold">Para afinar el resultado (opcional)</div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {missingList.map((m) => (
-                    <Pill key={m.label} onClick={() => goStep(m.goStep)}>
-                      Agregar: {m.label}
-                    </Pill>
-                  ))}
-                </div>
-
-                {computed.missing?.waist ? (
-                  <div className="mt-2 text-xs text-gray-600">
-                    Tip cintura: mide a nivel del ombligo, al final de una espiración, sin apretar la cinta.
-                  </div>
-                ) : null}
-
-                <div className="mt-2 text-xs text-gray-600">Si no los tienes, puedes avanzar igual. El puntaje funciona sin estos datos.</div>
-              </div>
-            ) : null}
 
             <StepNav />
           </section>
         ) : null}
 
-        {/* STEP 2: Hábitos */}
+        {/* Step 2 */}
         {step === 1 ? (
-          <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
+          <section className="rounded-2xl bg-white p-5 shadow-sm border border-slate-200 space-y-4" style={{ colorScheme: "light" }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Hábitos</h2>
-              <Badge>Rápido: usa los “chips”</Badge>
+              <h2 className="text-lg font-semibold text-slate-900">Hábitos</h2>
+              <Badge>Usa chips</Badge>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <NumericInput
-                id="breads"
-                label="Pan al día"
-                value={breadsPerDay}
-                onChange={setBreadsPerDay}
-                placeholder="Ej: 2"
-                suffix="unid/día"
-                quickPills={[
-                  { label: "0", value: 0 },
-                  { label: "2", value: 2 },
-                  { label: "4", value: 4 },
-                  { label: "6", value: 6 },
-                ]}
-              />
-
-              <NumericInput
-                id="sugary"
-                label="Bebidas azucaradas / dulces"
-                value={sugaryDrinksPerWeek}
-                onChange={setSugaryDrinksPerWeek}
-                placeholder="Ej: 3"
-                suffix="veces/sem"
-                quickPills={[
-                  { label: "0", value: 0 },
-                  { label: "2", value: 2 },
-                  { label: "4", value: 4 },
-                  { label: "7", value: 7 },
-                ]}
-              />
-
-              <NumericInput
-                id="protein"
-                label="Proteína (aprox.)"
-                value={proteinServingsPerDay}
-                onChange={setProteinServingsPerDay}
-                placeholder="Ej: 2"
-                suffix="porciones/día"
-                hint="Ejemplo: 1 porción = 1 huevo + 1 lámina jamón / 1 lata jurel / 1 taza legumbres."
-                quickPills={[
-                  { label: "0.5", value: 0.5 },
-                  { label: "1", value: 1 },
-                  { label: "2", value: 2 },
-                  { label: "3", value: 3 },
-                ]}
-              />
+              <NumericInput id="breads" label="Pan al día" value={breadsPerDay} onChange={setBreadsPerDay} placeholder="Ej: 2" suffix="unid/día" />
+              <NumericInput id="sugary" label="Bebidas azucaradas / dulces" value={sugaryDrinksPerWeek} onChange={setSugaryDrinksPerWeek} placeholder="Ej: 3" suffix="veces/sem" />
+              <NumericInput id="protein" label="Proteína (aprox.)" value={proteinServingsPerDay} onChange={setProteinServingsPerDay} placeholder="Ej: 2" suffix="porciones/día" />
 
               <Select
                 id="extraSalt"
-                label="¿Añades sal extra a la comida?"
+                label="¿Añade sal extra al plato?"
                 value={extraSalt}
                 onChange={setExtraSalt}
                 options={[
@@ -1624,85 +1101,31 @@ const heroCards = [
                   { value: "sometimes", label: "A veces" },
                   { value: "often", label: "Frecuentemente" },
                 ]}
-                hint="Ej: agregar sal al plato ya servido."
               />
 
-              <NumericInput
-                id="energy"
-                label="Bebidas energéticas"
-                value={energyDrinksPerWeek}
-                onChange={setEnergyDrinksPerWeek}
-                placeholder="Ej: 2"
-                suffix="veces/sem"
-                warning={computed.warnings?.energy}
-                quickPills={[
-                  { label: "0", value: 0 },
-                  { label: "1", value: 1 },
-                  { label: "3", value: 3 },
-                  { label: "5", value: 5 },
+              <NumericInput id="energy" label="Bebidas energéticas" value={energyDrinksPerWeek} onChange={setEnergyDrinksPerWeek} placeholder="Ej: 2" suffix="veces/sem" />
+
+              <Select
+                id="friedPeriod"
+                label="Frituras: periodo"
+                value={friedPeriod}
+                onChange={setFriedPeriod}
+                options={[
+                  { value: "week", label: "Por semana" },
+                  { value: "month", label: "Por mes" },
                 ]}
               />
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Frituras</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Select
-                    id="friedPeriod"
-                    label="Periodo"
-                    value={friedPeriod}
-                    onChange={setFriedPeriod}
-                    options={[
-                      { value: "week", label: "Por semana" },
-                      { value: "month", label: "Por mes" },
-                    ]}
-                  />
-                  <NumericInput
-                    id="friedCount"
-                    label="Cantidad"
-                    value={friedCount}
-                    onChange={setFriedCount}
-                    placeholder="Ej: 1"
-                    suffix={friedPeriod === "month" ? "veces/mes" : "veces/sem"}
-                    hint="Si lo dejas en blanco, no afecta."
-                    quickPills={[
-                      { label: "0", value: 0 },
-                      { label: "1", value: 1 },
-                      { label: "2", value: 2 },
-                      { label: "4", value: 4 },
-                    ]}
-                  />
-                </div>
-              </div>
-
               <NumericInput
-                id="sleep"
-                label="Sueño"
-                value={sleepHours}
-                onChange={setSleepHours}
-                placeholder="Ej: 7"
-                suffix="horas/noche"
-                quickPills={[
-                  { label: "5h", value: 5 },
-                  { label: "7h", value: 7 },
-                  { label: "8h", value: 8 },
-                  { label: "9h", value: 9 },
-                ]}
+                id="friedCount"
+                label="Frituras: cantidad"
+                value={friedCount}
+                onChange={setFriedCount}
+                placeholder="Ej: 1"
+                suffix={friedPeriod === "month" ? "veces/mes" : "veces/sem"}
               />
 
-              <NumericInput
-                id="activity"
-                label="Actividad física"
-                value={activityMinutesWeek}
-                onChange={setActivityMinutesWeek}
-                placeholder="Ej: 150"
-                suffix="min/sem"
-                quickPills={[
-                  { label: "0", value: 0 },
-                  { label: "60", value: 60 },
-                  { label: "150", value: 150 },
-                  { label: "300", value: 300 },
-                ]}
-              />
+              <NumericInput id="sleep" label="Sueño" value={sleepHours} onChange={setSleepHours} placeholder="Ej: 7" suffix="horas/noche" />
+              <NumericInput id="activity" label="Actividad física" value={activityMinutesWeek} onChange={setActivityMinutesWeek} placeholder="Ej: 150" suffix="min/sem" />
 
               <Select
                 id="smoking"
@@ -1715,49 +1138,39 @@ const heroCards = [
                 ]}
               />
 
-              {/* Alcohol */}
-              <div className="space-y-3">
-                <NumericInput
-                  id="alcoholDrinksPerWeek"
-                  label="Alcohol (tragos estándar)"
-                  value={alcoholDrinksPerWeek}
-                  onChange={setAlcoholDrinksPerWeek}
-                  placeholder="Ej: 2"
-                  suffix="tragos/sem"
-                  hint="1 trago estándar ≈ 1 cerveza lata (350cc) · 1 copa vino (150cc) · 1 medida destilado (45cc)."
-                  quickPills={[
-                    { label: "0", value: 0 },
-                    { label: "2", value: 2 },
-                    { label: "5", value: 5 },
-                    { label: "10", value: 10 },
-                    { label: "15", value: 15 },
-                  ]}
-                />
+              <NumericInput
+                id="alcoholDrinksPerWeek"
+                label="Alcohol (tragos estándar)"
+                value={alcoholDrinksPerWeek}
+                onChange={setAlcoholDrinksPerWeek}
+                placeholder="Ej: 2"
+                suffix="tragos/sem"
+                hint="1 cerveza 350cc · 1 copa vino 150cc · 1 destilado 45cc."
+              />
 
-                <Select
-                  id="alcoholBinge"
-                  label="¿Atracón (binge) en el último mes?"
-                  value={alcoholBinge}
-                  onChange={setAlcoholBinge}
-                  hint="Atracón ≈ 4+ tragos (mujer) o 5+ (hombre) en una ocasión."
-                  options={[
-                    { value: "no", label: "No" },
-                    { value: "yes", label: "Sí" },
-                  ]}
-                />
+              <Select
+                id="alcoholBinge"
+                label="¿Atracón (binge) en el último mes?"
+                value={alcoholBinge}
+                onChange={setAlcoholBinge}
+                options={[
+                  { value: "no", label: "No" },
+                  { value: "yes", label: "Sí" },
+                ]}
+                hint="Atracón ≈ 4+ tragos (mujer) o 5+ (hombre) en una ocasión."
+              />
 
-                <div className="text-xs text-gray-600">
-                  Categoría estimada:{" "}
-                  <span className="font-semibold">
-                    {alcoholLabel(
-                      alcoholCategory({
-                        drinksPerWeek: toNum(alcoholDrinksPerWeek) ?? 0,
-                        binge: alcoholBinge,
-                        sex,
-                      })
-                    )}
-                  </span>
-                </div>
+              <div className="md:col-span-2 text-sm text-slate-700">
+                Categoría alcohol estimada:{" "}
+                <span className="font-semibold">
+                  {alcoholLabel(
+                    alcoholCategory({
+                      drinksPerWeek: toNum(alcoholDrinksPerWeek) ?? 0,
+                      binge: alcoholBinge,
+                      sex,
+                    })
+                  )}
+                </span>
               </div>
             </div>
 
@@ -1765,70 +1178,25 @@ const heroCards = [
           </section>
         ) : null}
 
-        {/* STEP 3: Salud */}
+        {/* Step 3 */}
         {step === 2 ? (
-          <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
+          <section className="rounded-2xl bg-white p-5 shadow-sm border border-slate-200 space-y-4" style={{ colorScheme: "light" }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Salud, antecedentes y estrés</h2>
-              <Badge>Esto ayuda a personalizar</Badge>
+              <h2 className="text-lg font-semibold text-slate-900">Salud</h2>
+              <Badge>Personaliza</Badge>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Select
-                id="hasHTN"
-                label="¿HTA diagnosticada?"
-                value={hasHTN}
-                onChange={setHasHTN}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-              <Select
-                id="hasDM"
-                label="¿Diabetes diagnosticada?"
-                value={hasDM}
-                onChange={setHasDM}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-              <Select
-                id="hasDyslip"
-                label="¿Dislipidemia diagnosticada?"
-                value={hasDyslip}
-                onChange={setHasDyslip}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-              <Select
-                id="hasCVD"
-                label="¿Enfermedad cardiovascular (infarto/ACV)?"
-                value={hasCVD}
-                onChange={setHasCVD}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
+              <Select id="hasHTN" label="¿HTA diagnosticada?" value={hasHTN} onChange={setHasHTN} options={[{ value: "no", label: "No" }, { value: "yes", label: "Sí" }]} />
+              <Select id="hasDM" label="¿Diabetes diagnosticada?" value={hasDM} onChange={setHasDM} options={[{ value: "no", label: "No" }, { value: "yes", label: "Sí" }]} />
+              <Select id="hasDyslip" label="¿Dislipidemia?" value={hasDyslip} onChange={setHasDyslip} options={[{ value: "no", label: "No" }, { value: "yes", label: "Sí" }]} />
+              <Select id="hasCVD" label="¿Enfermedad cardiovascular (infarto/ACV)?" value={hasCVD} onChange={setHasCVD} options={[{ value: "no", label: "No" }, { value: "yes", label: "Sí" }]} />
 
-              <Select
-                id="famPrematureCVD"
-                label="Antecedente familiar CV temprano"
-                value={famPrematureCVD}
-                onChange={setFamPrematureCVD}
-                options={[
-                  { value: "no", label: "No / no sé" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
+              <Select id="famPrematureCVD" label="Antecedente familiar CV temprano" value={famPrematureCVD} onChange={setFamPrematureCVD} options={[{ value: "no", label: "No / no sé" }, { value: "yes", label: "Sí" }]} />
 
               <Select
                 id="thyroidDx"
-                label="¿Hipo/Hipertiroidismo diagnosticado?"
+                label="¿Hipo/Hipertiroidismo?"
                 value={thyroidDx}
                 onChange={setThyroidDx}
                 options={[
@@ -1838,26 +1206,9 @@ const heroCards = [
                 ]}
               />
 
-              <Select
-                id="chestPain"
-                label="Dolor/opresión en el pecho"
-                value={chestPain}
-                onChange={setChestPain}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-              <Select
-                id="easyFatigue"
-                label="¿Fatiga fácil (más de lo habitual)?"
-                value={easyFatigue}
-                onChange={setEasyFatigue}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
+              <Select id="chestPain" label="Dolor/opresión en el pecho" value={chestPain} onChange={setChestPain} options={[{ value: "no", label: "No" }, { value: "yes", label: "Sí" }]} />
+              <Select id="easyFatigue" label="¿Fatiga fácil?" value={easyFatigue} onChange={setEasyFatigue} options={[{ value: "no", label: "No" }, { value: "yes", label: "Sí" }]} />
+
               <Select
                 id="stressFreq"
                 label="Estrés (últimas 2 semanas)"
@@ -1871,386 +1222,162 @@ const heroCards = [
               />
             </div>
 
-            <div className="rounded-xl border p-4">
-              <div className="font-semibold">Importante</div>
-              <div className="mt-2 text-sm text-gray-700">
-                Si tienes <span className="font-semibold">dolor de pecho</span>, falta de aire importante, desmayo,
-                debilidad súbita o síntomas nuevos intensos, <span className="font-semibold">consulta URGENCIAS</span>.
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="font-semibold text-slate-900">Importante</div>
+              <div className="mt-2 text-sm text-slate-700">
+                Si tienes dolor de pecho intenso, falta de aire importante o síntomas nuevos, consulta <span className="font-semibold">URGENCIAS</span>.
               </div>
-              <div className="mt-2 text-xs text-gray-600">
-                *Orientación preventiva. No reemplaza evaluación clínica ni controles de enfermedades crónicas.
-              </div>
+              <div className="mt-2 text-xs text-slate-500">*Orientación preventiva. No reemplaza evaluación clínica.</div>
             </div>
 
             <StepNav />
           </section>
         ) : null}
 
-        {/* STEP 4: Resultado */}
+        {/* Step 4 */}
         {step === 3 ? (
-          <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
+          <section className="rounded-2xl bg-white p-5 shadow-sm border border-slate-200 space-y-4" style={{ colorScheme: "light" }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Resultado</h2>
-              <div className="flex items-center gap-2">
-                <Badge>{levelChip}</Badge>
-                {last?.date ? (
-                  <span className="text-xs text-gray-600">
-                    Último: {new Date(last.date).toLocaleDateString()} · {last.score}/100
-                  </span>
-                ) : null}
-              </div>
+              <h2 className="text-lg font-semibold text-slate-900">Resultado</h2>
+              {last?.date ? (
+                <span className="text-xs text-slate-600">
+                  Último: {new Date(last.date).toLocaleDateString()} · {last.score}/100
+                </span>
+              ) : null}
             </div>
 
-            {/* Score con barra */}
-            <div className="rounded-xl border p-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm text-gray-600">Riesgo estimado</div>
+                  <div className="text-sm text-slate-600">Riesgo estimado</div>
                   <div className="mt-1 flex items-end gap-3">
-                    <div className="text-3xl font-bold">{computed.score}/100</div>
-                    <div className="text-sm">
+                    <div className="text-3xl font-bold text-slate-900">{computed.score}/100</div>
+                    <div className="text-sm text-slate-700">
                       Nivel: <span className="font-semibold">{computed.level}</span>
                     </div>
                   </div>
-
-                  {computed.bp?.hasBP ? (
-                    <div className="mt-2 text-xs text-gray-600">
-                      PA informada:{" "}
-                      <span className="font-semibold">
-                        {computed.bp.sys}/{computed.bp.dia} mmHg
-                      </span>
+                  {drivers?.length ? (
+                    <div className="mt-2 text-sm text-slate-700">
+                      <span className="font-semibold">Lo que más influyó:</span> {drivers.join(" · ")}
                     </div>
-                  ) : (
-                    <div className="mt-2 text-xs text-gray-600">PA: no informada</div>
-                  )}
-
-                  <div className="mt-2 text-xs text-gray-600">
-                    Sal añadida:{" "}
-                    <span className="font-semibold">{extraSalt === "never" ? "No" : extraSalt === "sometimes" ? "A veces" : "Frecuente"}</span>
-                    {" · "}
-                    Energéticas:{" "}
-                    <span className="font-semibold">
-                      {toNum(energyDrinksPerWeek) === null ? "no informado" : `${toNum(energyDrinksPerWeek)} /sem`}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 text-xs text-gray-600">
-                    Alcohol estimado:{" "}
-                    <span className="font-semibold">
-                      {alcoholLabel(computed.alcohol?.category)} ({computed.alcohol?.drinksPerWeek ?? 0} tragos/sem, atracón:{" "}
-                      {computed.alcohol?.binge === "yes" ? "sí" : "no"})
-                    </span>
-                  </div>
+                  ) : null}
                 </div>
 
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={shareSummary}
-                    className="rounded-xl border px-3 py-2 text-sm hover:bg-gray-50 transition"
-                  >
-                    Compartir
-                  </button>
-                  <button
-                    type="button"
-                    onClick={printPDF}
-                    className="rounded-xl border px-3 py-2 text-sm bg-gray-900 text-white hover:opacity-95 transition"
-                  >
-                    PDF
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={shareSummary}
+                  className="rounded-xl border border-slate-900 bg-slate-900 px-3 py-2 text-sm text-white hover:opacity-95"
+                  style={{ colorScheme: "light" }}
+                >
+                  Compartir
+                </button>
               </div>
 
-              <div className="mt-3 h-3 w-full rounded-full bg-gray-100 overflow-hidden">
-                <div className="h-full rounded-full bg-gray-900 transition-all" style={{ width: `${computed.score}%` }} />
+              <div className="mt-3 h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-slate-900 transition-all" style={{ width: `${computed.score}%` }} />
               </div>
 
-              {drivers?.length ? (
-                <div className="mt-3 text-sm">
-                  <div className="font-semibold">Lo que más influyó (según lo ingresado)</div>
-                  <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                    {drivers.map((d, i) => (
-                      <li key={i}>{d}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {/* Mini historial (últimas 3) */}
-              {Array.isArray(history) && history.length ? (
-                <div className="mt-4 text-sm">
-                  <div className="font-semibold">Tus últimas mediciones</div>
-                  <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                    {history.slice(0, 3).map((h, i) => (
-                      <li key={i}>
-                        {new Date(h.date).toLocaleDateString()} — {h.score}/100 ({h.level})
-                      </li>
+              {computed.redFlags?.length ? (
+                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="font-semibold text-slate-900">Atención</div>
+                  <ul className="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
+                    {computed.redFlags.map((m, i) => (
+                      <li key={i}>{m}</li>
                     ))}
                   </ul>
                 </div>
               ) : null}
             </div>
 
-            {/* Acciones */}
-            <div className="rounded-xl border p-4">
-              <div className="font-semibold">Tus 3 acciones prioritarias</div>
-              <div className="mt-3 space-y-2">
-                {actionsWithTips.map((a, i) => (
-                  <div key={i} className="rounded-xl border p-3 bg-white">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-medium">{a.title}</div>
-                      <button
-                        type="button"
-                        onClick={() => setOpenTipIndex(openTipIndex === i ? null : i)}
-                        className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50 transition"
-                      >
-                        {openTipIndex === i ? "Ocultar" : "Ver cómo hacerlo"}
-                      </button>
-                    </div>
-                    {openTipIndex === i ? (
-                      <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                        {a.tips.map((t, idx) => (
-                          <li key={idx}>{t}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Banderas rojas */}
-            {computed.redFlags?.length ? (
-              <div className="rounded-xl border p-4">
-                <div className="font-semibold text-gray-900">
-                  <Badge>Atención</Badge> <span className="ml-2">Banderas rojas / cuándo consultar</span>
-                </div>
-                <ul className="mt-3 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                  {computed.redFlags.map((m, i) => (
-                    <li key={i}>{m}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {/* Listas + controles */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border p-4 space-y-4">
-                <div>
-                  <div className="font-semibold">Factores modificables a mejorar</div>
-                  {computed.risksMod?.length ? (
-                    <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                      {computed.risksMod.map((r, i) => (
-                        <li key={i}>{r}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm text-gray-600">No aparecen factores modificables con los datos ingresados.</p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="font-semibold">Condiciones diagnosticadas</div>
-                  {computed.dx?.length ? (
-                    <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                      {computed.dx.map((r, i) => (
-                        <li key={i}>{r}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm text-gray-600">No reporta diagnósticos.</p>
-                  )}
-                </div>
-
-                {computed.risksNoMod?.length ? (
-                  <div>
-                    <div className="font-semibold">Riesgos no modificables</div>
-                    <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                      {computed.risksNoMod.map((r, i) => (
-                        <li key={i}>{r}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="rounded-xl border p-4" ref={summaryRef}>
-                <div className="font-semibold">Controles sugeridos (CESFAM)</div>
-                <ul className="mt-3 list-disc pl-5 text-sm space-y-3">
-                  {suggestedControls.map((c) => (
-                    <li key={c.key}>
-                      <div className="font-medium">{c.title}</div>
-                      <div className="text-gray-600">{c.detail}</div>
-                      {c.ask ? <div className="text-gray-700 mt-1">✅ {c.ask}</div> : null}
-                    </li>
-                  ))}
-                </ul>
-
-                {referencesText ? <div className="mt-3 text-xs text-gray-500">{referencesText}</div> : null}
-
-                {/* ✅ FIX: aquí estaban pegando código como texto. Ahora son botones limpios */}
-                <div className="mt-4 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={shareSummary}
-                    className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50 transition"
-                  >
-                    Copiar/Compartir resumen
-                  </button>
-                  <button
-                    type="button"
-                    onClick={printPDF}
-                    className="rounded-xl border px-4 py-2 text-sm bg-gray-900 text-white hover:opacity-95 transition"
-                  >
-                    Guardar PDF
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <p className="mt-2 text-xs text-gray-500">
-              *La frecuencia exacta de algunos tamizajes puede variar por programa local, disponibilidad y criterio clínico en tu CESFAM.
-            </p>
-
-            {/* -------------------- Validación de mercado (al FINAL) -------------------- */}
-            <div className="h-px bg-gray-200 my-2" />
-            <div className="rounded-2xl border p-4 bg-white">
-              <div className="font-semibold text-gray-900">Ayúdanos a mejorar (1 minuto)</div>
-              <p className="mt-1 text-sm text-gray-600">
-                Tus respuestas nos ayudan a mejorar esta herramienta preventiva. La información se utiliza de forma anónima.
-              </p>
+            {/* Validación de mercado */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="font-semibold text-slate-900">Ayúdanos a mejorar (1 minuto)</div>
+              <p className="mt-1 text-sm text-slate-600">Tus respuestas son anónimas.</p>
 
               <div className="mt-4 grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <div className="text-sm font-medium">¿Conocías tu nivel de riesgo antes de esta evaluación?</div>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="mvqAwareness"
-                      value="known"
-                      checked={mvqAwareness === "known"}
-                      onChange={(e) => setMvqAwareness(e.target.value)}
-                    />
-                    Sí, ya lo conocía
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="mvqAwareness"
-                      value="suspected"
-                      checked={mvqAwareness === "suspected"}
-                      onChange={(e) => setMvqAwareness(e.target.value)}
-                    />
-                    Lo sospechaba, pero no estaba seguro(a)
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="mvqAwareness"
-                      value="didntknow"
-                      checked={mvqAwareness === "didntknow"}
-                      onChange={(e) => setMvqAwareness(e.target.value)}
-                    />
-                    No, no lo sabía
-                  </label>
+                  <div className="text-sm font-medium text-slate-900">¿Conocías tu riesgo antes?</div>
+                  {[
+                    ["known", "Sí, ya lo conocía"],
+                    ["suspected", "Lo sospechaba, pero no estaba seguro(a)"],
+                    ["didntknow", "No, no lo sabía"],
+                  ].map(([val, lab]) => (
+                    <label key={val} className="flex items-center gap-2 text-sm text-slate-700">
+                      <input
+                        className="h-4 w-4"
+                        style={{ colorScheme: "light", accentColor: "#0f172a" }}
+                        type="radio"
+                        name="mvqAwareness"
+                        value={val}
+                        checked={mvqAwareness === val}
+                        onChange={(e) => setMvqAwareness(e.target.value)}
+                      />
+                      {lab}
+                    </label>
+                  ))}
                 </div>
 
                 <div className="space-y-2">
-                  <div className="text-sm font-medium">¿Te gustaría repetir esta evaluación mensualmente para monitorear tu salud?</div>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="mvqMonthly"
-                      value="yes"
-                      checked={mvqMonthly === "yes"}
-                      onChange={(e) => setMvqMonthly(e.target.value)}
-                    />
-                    Sí, definitivamente
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="mvqMonthly"
-                      value="maybe"
-                      checked={mvqMonthly === "maybe"}
-                      onChange={(e) => setMvqMonthly(e.target.value)}
-                    />
-                    Tal vez
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="mvqMonthly"
-                      value="no"
-                      checked={mvqMonthly === "no"}
-                      onChange={(e) => setMvqMonthly(e.target.value)}
-                    />
-                    No por ahora
-                  </label>
+                  <div className="text-sm font-medium text-slate-900">¿Repetirías mensualmente?</div>
+                  {[
+                    ["yes", "Sí, definitivamente"],
+                    ["maybe", "Tal vez"],
+                    ["no", "No por ahora"],
+                  ].map(([val, lab]) => (
+                    <label key={val} className="flex items-center gap-2 text-sm text-slate-700">
+                      <input
+                        className="h-4 w-4"
+                        style={{ colorScheme: "light", accentColor: "#0f172a" }}
+                        type="radio"
+                        name="mvqMonthly"
+                        value={val}
+                        checked={mvqMonthly === val}
+                        onChange={(e) => setMvqMonthly(e.target.value)}
+                      />
+                      {lab}
+                    </label>
+                  ))}
                 </div>
 
                 <div className="space-y-2">
-                  <div className="text-sm font-medium">¿Te gustaría recibir recomendaciones personalizadas según tus resultados?</div>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="mvqReco"
-                      value="yes"
-                      checked={mvqReco === "yes"}
-                      onChange={(e) => setMvqReco(e.target.value)}
-                    />
-                    Sí
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="mvqReco"
-                      value="maybe"
-                      checked={mvqReco === "maybe"}
-                      onChange={(e) => setMvqReco(e.target.value)}
-                    />
-                    Tal vez
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="mvqReco"
-                      value="no"
-                      checked={mvqReco === "no"}
-                      onChange={(e) => setMvqReco(e.target.value)}
-                    />
-                    No
-                  </label>
+                  <div className="text-sm font-medium text-slate-900">¿Quieres recomendaciones personalizadas?</div>
+                  {[
+                    ["yes", "Sí"],
+                    ["maybe", "Tal vez"],
+                    ["no", "No"],
+                  ].map(([val, lab]) => (
+                    <label key={val} className="flex items-center gap-2 text-sm text-slate-700">
+                      <input
+                        className="h-4 w-4"
+                        style={{ colorScheme: "light", accentColor: "#0f172a" }}
+                        type="radio"
+                        name="mvqReco"
+                        value={val}
+                        checked={mvqReco === val}
+                        onChange={(e) => setMvqReco(e.target.value)}
+                      />
+                      {lab}
+                    </label>
+                  ))}
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2">
+              <div className="mt-4 flex items-center gap-2">
                 <button
                   type="button"
                   onClick={saveMarketValidation}
+                  disabled={mvqSaved}
                   className={classNames(
                     "rounded-xl border px-4 py-2 text-sm transition active:scale-[0.99]",
-                    mvqSaved ? "bg-gray-100 text-gray-500" : "bg-gray-900 text-white hover:opacity-95"
+                    mvqSaved
+                      ? "border-slate-200 bg-slate-100 text-slate-500"
+                      : "border-slate-900 bg-slate-900 text-white hover:opacity-95"
                   )}
-                  disabled={mvqSaved}
+                  style={{ colorScheme: "light" }}
                 >
                   {mvqSaved ? "Respuesta guardada ✅" : "Enviar respuestas"}
                 </button>
-
-                {!mvqSaved ? (
-                  <span className="text-xs text-gray-600">*Anónimo · No guardamos tu nombre</span>
-                ) : (
-                  <span className="text-xs text-gray-600">¡Gracias! 💛</span>
-                )}
+                <span className="text-xs text-slate-600">{mvqSaved ? "¡Gracias!" : "Anónimo"}</span>
               </div>
             </div>
 
@@ -2258,20 +1385,14 @@ const heroCards = [
           </section>
         ) : null}
 
-        {/* Modal: ¿Cómo se calcula? */}
+        {/* Modal */}
         <Modal open={openHow} title="¿Cómo se calcula este resultado?" onClose={() => setOpenHow(false)}>
           <p>
-            Este MVP suma puntos por <span className="font-semibold">factores de riesgo</span> (por ejemplo IMC alto, cintura alta,
-            presión arterial elevada, sal añadida, baja actividad, tabaco, glicemia/HbA1c elevadas, etc.). A mayor puntaje,
-            mayor prioridad de mejora y control.
+            Este MVP suma puntos por factores de riesgo (IMC alto, cintura alta, presión elevada, sal extra, baja actividad,
+            tabaco, glicemia/HbA1c, etc.). A mayor puntaje, mayor prioridad de mejora y control.
           </p>
-          <p>
-            <span className="font-semibold">Opcionales</span> (cintura, presión arterial y exámenes): si no los ingresas, no se penaliza;
-            solo se vuelve menos preciso.
-          </p>
-          <p>
-            <span className="font-semibold">Importante:</span> no es un diagnóstico. Si tienes enfermedad crónica o síntomas relevantes,
-            lo correcto es evaluación clínica.
+          <p className="text-slate-700">
+            Importante: no es diagnóstico. Si hay síntomas importantes o enfermedad crónica, lo correcto es evaluación clínica.
           </p>
         </Modal>
       </div>
