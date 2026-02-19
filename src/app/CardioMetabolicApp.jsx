@@ -57,8 +57,6 @@ function Badge({ children }) {
   );
 }
 
-
-
 /**
  * ✅ FIX: Hooks NO pueden quedar “después” de un return condicional.
  * El efecto se declara siempre; adentro chequea `open`.
@@ -129,8 +127,6 @@ function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, w
         />
         {suffix ? <span className="text-sm text-gray-600">{suffix}</span> : null}
       </div>
-
-    
 
       {warning ? (
         <div className="text-xs text-gray-700">
@@ -1354,71 +1350,45 @@ export default function CardioMetabolicApp() {
               })}
             </div>
 
-            {/* Buttons */}
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={shareSummary}
-                className="rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:opacity-95"
-              >
-                Compartir resumen
-              </button>
-
-              <button
-                onClick={printPDF}
-                className="rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:opacity-95"
-              >
-                Guardar PDF
-              </button>
-            </div>
-
+            {/* ✅ Botones removidos del HERO (ahora van al final del Resultado) */}
           </div>
         </header>
 
-     {/* Wizard header (tabs + barra) */}
-<section className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
+        {/* Wizard header (tabs + barra) */}
+        <section className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            {/* Título del paso */}
+            <div className="text-base font-semibold text-slate-900">
+              Paso {step + 1} de {steps.length}:{" "}
+              <span className="font-medium">{steps[step].title}</span>
+            </div>
 
-  <div className="flex items-center justify-between gap-3">
-    
-    {/* Título del paso */}
-    <div className="text-base font-semibold text-slate-900">
-      Paso {step + 1} de {steps.length}:{" "}
-      <span className="font-medium">{steps[step].title}</span>
-    </div>
+            {/* Porcentaje */}
+            <div className="text-sm font-medium text-gray-600">{progressPct}%</div>
+          </div>
 
-    {/* Porcentaje */}
-    <div className="text-sm font-medium text-gray-600">
-      {progressPct}%
-    </div>
-  </div>
+          {/* Barra */}
+          <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+            <div className="h-full rounded-full bg-gray-900 transition-all" style={{ width: `${progressPct}%` }} />
+          </div>
 
-  {/* Barra */}
-  <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-    <div
-      className="h-full rounded-full bg-gray-900 transition-all"
-      style={{ width: `${progressPct}%` }}
-    />
-  </div>
-
-  {/* Tabs */}
-  <div className="mt-4 flex flex-wrap gap-2">
-    {steps.map((s, i) => (
-      <button
-        key={s.key}
-        type="button"
-        onClick={() => goStep(i)}
-        className={classNames(
-          "rounded-full border border-slate-300 px-4 py-1.5 text-sm transition",
-          i === step
-            ? "border-[#15244b] bg-[#15244b] text-white"
-            : "bg-white text-gray-600 hover:bg-gray-50"
-        )}
-      >
-        {s.title}
-      </button>
-    ))}
-  </div>
-
-</section>
+          {/* Tabs */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {steps.map((s, i) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => goStep(i)}
+                className={classNames(
+                  "rounded-full border border-slate-300 px-4 py-1.5 text-sm transition",
+                  i === step ? "border-[#15244b] bg-[#15244b] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                )}
+              >
+                {s.title}
+              </button>
+            ))}
+          </div>
+        </section>
 
         {/* STEP 1: Datos */}
         {step === 0 ? (
@@ -1479,7 +1449,6 @@ export default function CardioMetabolicApp() {
                     suffix="mmHg"
                     hint="Ideal: medir en reposo (5 min), sentado/a."
                     warning={computed.warnings?.bpSys}
-                   
                   />
                   <NumericInput
                     id="bpDia"
@@ -1490,7 +1459,6 @@ export default function CardioMetabolicApp() {
                     suffix="mmHg"
                     hint="Si no la sabes, puedes dejarlo en blanco (no afecta)."
                     warning={computed.warnings?.bpDia}
-                  
                   />
                 </div>
 
@@ -1513,24 +1481,24 @@ export default function CardioMetabolicApp() {
               <NumericInput id="chol" label="Colesterol total (opcional)" value={cholTotal} onChange={setCholTotal} placeholder="Ej: 180" suffix="mg/dL" warning={computed.warnings?.chol} />
             </div>
 
-        {missingList.length ? (
-  <div className="rounded-xl border p-4">
-    <div className="font-semibold">Para afinar el resultado (opcional)</div>
-    <div className="mt-2 text-sm text-gray-700">
-      Puedes agregar: {missingList.map((m) => m.label).join(" · ")}.
-    </div>
+            {missingList.length ? (
+              <div className="rounded-xl border p-4">
+                <div className="font-semibold">Para afinar el resultado (opcional)</div>
+                <div className="mt-2 text-sm text-gray-700">
+                  Puedes agregar: {missingList.map((m) => m.label).join(" · ")}.
+                </div>
 
-    {computed.missing?.waist ? (
-      <div className="mt-2 text-xs text-gray-600">
-        Tip cintura: mide a nivel del ombligo, al final de una espiración, sin apretar la cinta.
-      </div>
-    ) : null}
+                {computed.missing?.waist ? (
+                  <div className="mt-2 text-xs text-gray-600">
+                    Tip cintura: mide a nivel del ombligo, al final de una espiración, sin apretar la cinta.
+                  </div>
+                ) : null}
 
-    <div className="mt-2 text-xs text-gray-600">
-      Si no los tienes, puedes avanzar igual. El puntaje funciona sin estos datos.
-    </div>
-  </div>
-) : null}
+                <div className="mt-2 text-xs text-gray-600">
+                  Si no los tienes, puedes avanzar igual. El puntaje funciona sin estos datos.
+                </div>
+              </div>
+            ) : null}
 
             <StepNav />
           </section>
@@ -1545,25 +1513,9 @@ export default function CardioMetabolicApp() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <NumericInput
-                id="breads"
-                label="Pan al día"
-                value={breadsPerDay}
-                onChange={setBreadsPerDay}
-                placeholder="Ej: 2"
-                suffix="unid/día"
-              
-              />
+              <NumericInput id="breads" label="Pan al día" value={breadsPerDay} onChange={setBreadsPerDay} placeholder="Ej: 2" suffix="unid/día" />
 
-              <NumericInput
-                id="sugary"
-                label="Bebidas azucaradas / dulces"
-                value={sugaryDrinksPerWeek}
-                onChange={setSugaryDrinksPerWeek}
-                placeholder="Ej: 3"
-                suffix="veces/sem"
-              
-              />
+              <NumericInput id="sugary" label="Bebidas azucaradas / dulces" value={sugaryDrinksPerWeek} onChange={setSugaryDrinksPerWeek} placeholder="Ej: 3" suffix="veces/sem" />
 
               <NumericInput
                 id="protein"
@@ -1573,7 +1525,6 @@ export default function CardioMetabolicApp() {
                 placeholder="Ej: 2"
                 suffix="porciones/día"
                 hint="Ejemplo: 1 porción = 1 huevo + 1 lámina jamón / 1 lata jurel / 1 taza legumbres."
-               
               />
 
               <Select
@@ -1597,7 +1548,6 @@ export default function CardioMetabolicApp() {
                 placeholder="Ej: 2"
                 suffix="veces/sem"
                 warning={computed.warnings?.energy}
-               
               />
 
               <div className="space-y-2">
@@ -1621,30 +1571,13 @@ export default function CardioMetabolicApp() {
                     placeholder="Ej: 1"
                     suffix={friedPeriod === "month" ? "veces/mes" : "veces/sem"}
                     hint="Si lo dejas en blanco, no afecta."
-                   
                   />
                 </div>
               </div>
 
-              <NumericInput
-                id="sleep"
-                label="Sueño"
-                value={sleepHours}
-                onChange={setSleepHours}
-                placeholder="Ej: 7"
-                suffix="horas/noche"
-               
-              />
+              <NumericInput id="sleep" label="Sueño" value={sleepHours} onChange={setSleepHours} placeholder="Ej: 7" suffix="horas/noche" />
 
-              <NumericInput
-                id="activity"
-                label="Actividad física"
-                value={activityMinutesWeek}
-                onChange={setActivityMinutesWeek}
-                placeholder="Ej: 150"
-                suffix="min/sem"
-              
-              />
+              <NumericInput id="activity" label="Actividad física" value={activityMinutesWeek} onChange={setActivityMinutesWeek} placeholder="Ej: 150" suffix="min/sem" />
 
               <Select
                 id="smoking"
@@ -1667,7 +1600,6 @@ export default function CardioMetabolicApp() {
                   placeholder="Ej: 2"
                   suffix="tragos/sem"
                   hint="1 trago estándar ≈ 1 cerveza lata (350cc) · 1 copa vino (150cc) · 1 medida destilado (45cc)."
-                
                 />
 
                 <Select
@@ -1862,7 +1794,9 @@ export default function CardioMetabolicApp() {
 
                   <div className="mt-2 text-xs text-gray-600">
                     Sal añadida:{" "}
-                    <span className="font-semibold">{extraSalt === "never" ? "No" : extraSalt === "sometimes" ? "A veces" : "Frecuente"}</span>
+                    <span className="font-semibold">
+                      {extraSalt === "never" ? "No" : extraSalt === "sometimes" ? "A veces" : "Frecuente"}
+                    </span>
                     {" · "}
                     Energéticas:{" "}
                     <span className="font-semibold">
@@ -1879,18 +1813,7 @@ export default function CardioMetabolicApp() {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <button type="button" onClick={shareSummary} className="rounded-xl border px-3 py-2 text-sm hover:bg-gray-50 transition">
-                    Compartir
-                  </button>
-                  <button
-                    type="button"
-                    onClick={printPDF}
-                    className="rounded-xl border px-3 py-2 text-sm bg-gray-900 text-white hover:opacity-95 transition"
-                  >
-                    PDF
-                  </button>
-                </div>
+                {/* ✅ Botones removidos de aquí (ahora van al final del paso Resultado) */}
               </div>
 
               <div className="mt-3 h-3 w-full rounded-full bg-gray-100 overflow-hidden">
@@ -2020,18 +1943,7 @@ export default function CardioMetabolicApp() {
 
                 {referencesText ? <div className="mt-3 text-xs text-gray-500">{referencesText}</div> : null}
 
-                <div className="mt-4 flex gap-2">
-                  <button type="button" onClick={shareSummary} className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50 transition">
-                    Copiar/Compartir resumen
-                  </button>
-                  <button
-                    type="button"
-                    onClick={printPDF}
-                    className="rounded-xl border px-4 py-2 text-sm bg-gray-900 text-white hover:opacity-95 transition"
-                  >
-                    Guardar PDF
-                  </button>
-                </div>
+                {/* ✅ Botones removidos de aquí (ahora van al final del paso Resultado) */}
               </div>
             </div>
 
@@ -2187,6 +2099,31 @@ export default function CardioMetabolicApp() {
                 ) : (
                   <span className="text-xs text-gray-600">¡Gracias! 💛</span>
                 )}
+              </div>
+            </div>
+
+            {/* ✅ NUEVO: Botones estratégicos al final (debajo de la encuesta) */}
+            <div className="rounded-2xl border p-4 bg-white">
+              <div className="font-semibold text-gray-900">Guardar tu resultado</div>
+              <p className="mt-1 text-sm text-gray-600">
+                Puedes compartir tu resumen o guardarlo como PDF para llevarlo a un control.
+              </p>
+
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={shareSummary}
+                  className="w-full rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-gray-50 transition"
+                >
+                  Compartir / Copiar resumen
+                </button>
+                <button
+                  type="button"
+                  onClick={printPDF}
+                  className="w-full rounded-xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
+                >
+                  Guardar PDF
+                </button>
               </div>
             </div>
 
