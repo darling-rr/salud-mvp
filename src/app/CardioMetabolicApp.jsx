@@ -1392,11 +1392,6 @@ export default function CardioMetabolicApp() {
               </button>
             </div>
 
-            {/* Badges */}
-            <div className="flex flex-wrap gap-2 text-xs text-slate-600">
-              <span className="rounded-full border px-3 py-1">Sin registro de datos</span>
-              <span className="rounded-full border px-3 py-1">Calculado en tu navegador</span>
-            </div>
           </div>
         </header>
 
