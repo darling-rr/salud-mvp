@@ -1374,38 +1374,50 @@ export default function CardioMetabolicApp() {
           </div>
         </header>
 
-      {/* Wizard header (tabs + barra) */}
-<section className="rounded-[1.25rem] border border-slate-300 bg-white p-4 shadow-[0_2px_5px_rgba(0,0,0,0.04)] sm:rounded-[1.5rem] sm:p-5 md:rounded-[1.75rem] md:p-6">
+     {/* Wizard header (tabs + barra) */}
+<section className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
+
   <div className="flex items-center justify-between gap-3">
-    <div className="text-base font-semibold text-slate-900 sm:text-lg md:text-xl">
-      Paso {step + 1} de {steps.length}: <span>{steps[step].title}</span>
+    
+    {/* Título del paso */}
+    <div className="text-base font-semibold text-slate-900">
+      Paso {step + 1} de {steps.length}:{" "}
+      <span className="font-medium">{steps[step].title}</span>
     </div>
 
-    <div className="text-sm text-gray-600 sm:text-base md:text-lg">
+    {/* Porcentaje */}
+    <div className="text-sm font-medium text-gray-600">
       {progressPct}%
     </div>
   </div>
 
+  {/* Barra */}
   <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-    <div className="h-full rounded-full bg-gray-900 transition-all" style={{ width: `${progressPct}%` }} />
+    <div
+      className="h-full rounded-full bg-gray-900 transition-all"
+      style={{ width: `${progressPct}%` }}
+    />
   </div>
 
-  <div className="mt-4 flex flex-wrap gap-2 sm:mt-5 sm:gap-3">
+  {/* Tabs */}
+  <div className="mt-4 flex flex-wrap gap-2">
     {steps.map((s, i) => (
       <button
         key={s.key}
         type="button"
         onClick={() => goStep(i)}
         className={classNames(
-          // ⬇️ más “responsive real”: crece poquito en desktop
-          "rounded-full border border-slate-300 px-3 py-1.5 text-sm leading-tight transition sm:px-4 sm:py-2 sm:text-base md:px-5 md:text-base",
-          i === step ? "border-[#15244b] bg-[#15244b] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+          "rounded-full border border-slate-300 px-4 py-1.5 text-sm transition",
+          i === step
+            ? "border-[#15244b] bg-[#15244b] text-white"
+            : "bg-white text-gray-600 hover:bg-gray-50"
         )}
       >
         {s.title}
       </button>
     ))}
   </div>
+
 </section>
 
         {/* STEP 1: Datos */}
