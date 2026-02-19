@@ -1315,96 +1315,90 @@ const heroCards = [
    <main ref={topRef} className="min-h-screen bg-[#f6f7fb] p-3 sm:p-4 md:p-7">
       <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-5">
 
-        {/* HERO */}
+      
            {/* HERO */}
-<header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 md:p-8">
-  <div className="space-y-5">
+<header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+  <div className="space-y-4">
+
     {/* Icon + Title */}
-    <div className="space-y-3">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 sm:h-14 sm:w-14">
-        <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-7 sm:w-7" fill="currentColor">
+    <div className="space-y-2">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
           <circle cx="12" cy="7" r="3" />
           <rect x="9" y="11" width="6" height="10" rx="2" />
         </svg>
       </div>
 
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">
+      <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
         Evaluación cardiometabólica (MVP)
       </h1>
 
-      <p className="max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base lg:text-lg">
+      <p className="text-sm text-slate-600 sm:text-base">
         En 2 minutos identifica tus principales puntos a mejorar y qué controles pedir en APS.
       </p>
     </div>
 
     {/* Cards */}
-    <div className="space-y-3">
+    <div className="space-y-2">
       {heroCards.map((card) => {
         const clickable = Boolean(card.onClick);
-
-        const CardTag = clickable ? "button" : "div";
+        const Tag = clickable ? "button" : "div";
 
         return (
-          <CardTag
+          <Tag
             key={card.title}
             type={clickable ? "button" : undefined}
             onClick={clickable ? card.onClick : undefined}
-            className={classNames(
-              "w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition sm:rounded-3xl sm:px-5",
-              clickable ? "hover:bg-slate-50" : "cursor-default"
-            )}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-left transition hover:bg-slate-50"
           >
-            <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 sm:h-12 sm:w-12">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700">
                 {card.icon}
               </div>
 
               <div className="min-w-0">
-                <h3 className="text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                <h3 className="text-sm font-semibold text-slate-900">
                   {card.title}
                 </h3>
-                <p className="mt-0.5 text-sm text-slate-600 sm:text-base">
+                <p className="text-xs text-slate-600">
                   {card.description}
                 </p>
               </div>
 
-              {clickable ? (
-                <span className="ml-auto shrink-0 pl-2 text-sm font-medium text-slate-600">
+              {clickable && (
+                <span className="ml-auto text-xs text-slate-500">
                   Ver más ›
                 </span>
-              ) : null}
+              )}
             </div>
-          </CardTag>
+          </Tag>
         );
       })}
     </div>
 
-    {/* Actions */}
-    <div className="flex flex-col gap-3 sm:flex-row">
+    {/* Buttons */}
+    <div className="flex flex-col gap-2">
       <button
-        type="button"
         onClick={shareSummary}
-        className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95 sm:rounded-3xl sm:text-base"
+        className="rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:opacity-95"
       >
-        <span className="text-lg">↗</span>
         Compartir resumen
       </button>
 
       <button
-        type="button"
         onClick={printPDF}
-        className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95 sm:rounded-3xl sm:text-base"
+        className="rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:opacity-95"
       >
-        <span className="text-lg">⇩</span>
         Guardar PDF
       </button>
     </div>
 
     {/* Badges */}
-    <div className="flex flex-wrap gap-2">
-      <Badge>Sin registro de datos</Badge>
-      <Badge>Calculado en tu navegador</Badge>
+    <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+      <span className="rounded-full border px-3 py-1">Sin registro de datos</span>
+      <span className="rounded-full border px-3 py-1">Calculado en tu navegador</span>
     </div>
+
   </div>
 </header>
 
