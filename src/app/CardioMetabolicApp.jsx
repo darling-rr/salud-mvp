@@ -4,18 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 /* -------------------- Helpers -------------------- */
-const sessionIdRef = useRef(null);
-
-useEffect(() => {
-  sessionIdRef.current = getOrCreateSessionId();
-}, []);
-
 const SESSION_COOKIE = "cm_session_id";
 
 const randomId = () => {
-  // crypto.randomUUID() es lo más fácil y robusto
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-  // fallback básico
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
@@ -27,8 +19,20 @@ const getCookie = (name) => {
 
 const setCookie = (name, value, days = 365) => {
   if (typeof document === "undefined") return;
+
   const maxAge = days * 24 * 60 * 60;
-  document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure`;
+
+  // ✅ En localhost (http) NO sirve "Secure" (no se guarda la cookie)
+  const isHttps =
+    typeof window !== "undefined" &&
+    window.location &&
+    window.location.protocol === "https:";
+
+  const securePart = isHttps ? "; Secure" : "";
+
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; Max-Age=${maxAge}; Path=/; SameSite=Lax${securePart}`;
 };
 
 const getOrCreateSessionId = () => {
@@ -149,7 +153,6 @@ function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, w
           inputMode="decimal"
           pattern="[0-9]*[.,]?[0-9]*"
           className={classNames(
-            // ✅ FIX dark-mode forzado: fondo/texto/placeholder/borde explícitos
             "w-full rounded-xl border px-3 py-2 outline-none focus:ring bg-white text-slate-900 placeholder:text-slate-400 border-slate-300",
             warning ? "border-gray-900" : ""
           )}
@@ -182,7 +185,6 @@ function Select({ id, label, value, onChange, options, hint }) {
       </label>
       <select
         id={id}
-        // ✅ FIX dark-mode forzado: fondo/texto/borde explícitos
         className="w-full rounded-xl border px-3 py-2 outline-none focus:ring bg-white text-slate-900 border-slate-300"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -206,6 +208,12 @@ export default function CardioMetabolicApp() {
     return () => {
       document.documentElement.style.colorScheme = "";
     };
+  }, []);
+
+  // ✅✅ FIX CRÍTICO: hooks dentro del componente (NO arriba)
+  const sessionIdRef = useRef(null);
+  useEffect(() => {
+    sessionIdRef.current = getOrCreateSessionId();
   }, []);
 
   // Wizard
@@ -285,40 +293,6 @@ export default function CardioMetabolicApp() {
   const [easyFatigue, setEasyFatigue] = useState("no"); // no|yes
   const [stressFreq, setStressFreq] = useState("sometimes"); // never|sometimes|often
 
-  // ✅ Función real para guardar (tabla: assessments; columnas: answers, score, risk_level)
-  async function guardarEvaluacion({
-  answers,
-  score,
-  riskLevel,
-  mvqAwareness,
-  mvqMonthly,
-  mvqReco,
-  ip_hash,
-}) {
-  const session_id = sessionIdRef.current ?? getOrCreateSessionId();
-  const user_agent = typeof navigator !== "undefined" ? navigator.userAgent : null;
-
-  const { data, error } = await supabase
-    .from("assessments")
-    .insert([
-      {
-        answers,
-        score,
-        risk_level: riskLevel,
-        mvq_awareness: mvqAwareness,
-        mvq_monthly: mvqMonthly,
-        mvq_reco: mvqReco,
-        session_id,
-        user_agent,
-        ip_hash,
-      },
-    ])
-    .select();
-
-  if (error) return { ok: false, error };
-  return { ok: true, data };
-}
-
   // -------------------- Validación de mercado (MVP) --------------------
   const [mvqAwareness, setMvqAwareness] = useState(""); // "known" | "suspected" | "didntknow"
   const [mvqMonthly, setMvqMonthly] = useState(""); // "yes" | "maybe" | "no"
@@ -326,19 +300,55 @@ export default function CardioMetabolicApp() {
   const [mvqSaved, setMvqSaved] = useState(false);
 
   // Fingerprint técnico (ip + user agent hash)
-const [fp, setFp] = useState({ ip_hash: null, ua_hash: null });
+  const [fp, setFp] = useState({ ip_hash: null, ua_hash: null });
 
-useEffect(() => {
-  (async () => {
-    try {
-      const r = await fetch("/api/fingerprint");
-      const j = await r.json();
-      setFp(j);
-    } catch (e) {
-      console.log("Fingerprint no disponible");
-    }
-  })();
-}, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch("/api/fingerprint");
+        const j = await r.json();
+        setFp(j);
+      } catch (e) {
+        console.log("Fingerprint no disponible");
+      }
+    })();
+  }, []);
+
+  // ✅ Función real para guardar (tabla: assessments; columnas: answers, score, risk_level)
+  async function guardarEvaluacion({
+    answers,
+    score,
+    riskLevel,
+    mvqAwareness,
+    mvqMonthly,
+    mvqReco,
+    ip_hash,
+    ua_hash,
+  }) {
+    const session_id = sessionIdRef.current ?? getOrCreateSessionId();
+    const user_agent = typeof navigator !== "undefined" ? navigator.userAgent : null;
+
+    const { data, error } = await supabase
+      .from("assessments")
+      .insert([
+        {
+          answers,
+          score,
+          risk_level: riskLevel,
+          mvq_awareness: mvqAwareness,
+          mvq_monthly: mvqMonthly,
+          mvq_reco: mvqReco,
+          session_id,
+          user_agent,
+          ip_hash,
+          ua_hash,
+        },
+      ])
+      .select();
+
+    if (error) return { ok: false, error };
+    return { ok: true, data };
+  }
 
   // Refs para scroll
   const topRef = useRef(null);
@@ -1083,11 +1093,12 @@ useEffect(() => {
   answers,
   score: computed.score,
   riskLevel: computed.level,
-  mvqAwareness,
+   mvqAwareness,
   mvqMonthly,
-  mvqReco,
-  ip_hash: fp.ip_hash,
-});
+   mvqReco,
+   ip_hash: fp.ip_hash,
+    ua_hash: fp.ua_hash,
+   });
 
       if (res.ok && res.data?.[0]?.id) {
         localStorage.setItem("cm_last_assessment_id", res.data[0].id);
