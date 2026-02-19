@@ -113,7 +113,7 @@ function Modal({ open, title, onClose, children }) {
   );
 }
 
-function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, warning, quickPills }) {
+function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, warning }) {
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="block">
@@ -143,15 +143,7 @@ function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, w
         {suffix ? <span className="text-sm text-gray-600">{suffix}</span> : null}
       </div>
 
-      {quickPills?.length ? (
-        <div className="flex flex-wrap gap-2 pt-1">
-          {quickPills.map((p) => (
-            <Pill key={p.label} onClick={() => onChange(String(p.value))} active={String(p.value) === String(value)}>
-              {p.label}
-            </Pill>
-          ))}
-        </div>
-      ) : null}
+    
 
       {warning ? (
         <div className="text-xs text-gray-700">
@@ -1483,12 +1475,7 @@ export default function CardioMetabolicApp() {
                     suffix="mmHg"
                     hint="Ideal: medir en reposo (5 min), sentado/a."
                     warning={computed.warnings?.bpSys}
-                    quickPills={[
-                      { label: "110", value: 110 },
-                      { label: "120", value: 120 },
-                      { label: "130", value: 130 },
-                      { label: "140", value: 140 },
-                    ]}
+                   
                   />
                   <NumericInput
                     id="bpDia"
@@ -1499,12 +1486,7 @@ export default function CardioMetabolicApp() {
                     suffix="mmHg"
                     hint="Si no la sabes, puedes dejarlo en blanco (no afecta)."
                     warning={computed.warnings?.bpDia}
-                    quickPills={[
-                      { label: "70", value: 70 },
-                      { label: "80", value: 80 },
-                      { label: "85", value: 85 },
-                      { label: "90", value: 90 },
-                    ]}
+                  
                   />
                 </div>
 
@@ -1568,12 +1550,7 @@ export default function CardioMetabolicApp() {
                 onChange={setBreadsPerDay}
                 placeholder="Ej: 2"
                 suffix="unid/día"
-                quickPills={[
-                  { label: "0", value: 0 },
-                  { label: "2", value: 2 },
-                  { label: "4", value: 4 },
-                  { label: "6", value: 6 },
-                ]}
+              
               />
 
               <NumericInput
@@ -1583,12 +1560,7 @@ export default function CardioMetabolicApp() {
                 onChange={setSugaryDrinksPerWeek}
                 placeholder="Ej: 3"
                 suffix="veces/sem"
-                quickPills={[
-                  { label: "0", value: 0 },
-                  { label: "2", value: 2 },
-                  { label: "4", value: 4 },
-                  { label: "7", value: 7 },
-                ]}
+              
               />
 
               <NumericInput
@@ -1599,12 +1571,7 @@ export default function CardioMetabolicApp() {
                 placeholder="Ej: 2"
                 suffix="porciones/día"
                 hint="Ejemplo: 1 porción = 1 huevo + 1 lámina jamón / 1 lata jurel / 1 taza legumbres."
-                quickPills={[
-                  { label: "0.5", value: 0.5 },
-                  { label: "1", value: 1 },
-                  { label: "2", value: 2 },
-                  { label: "3", value: 3 },
-                ]}
+               
               />
 
               <Select
@@ -1628,12 +1595,7 @@ export default function CardioMetabolicApp() {
                 placeholder="Ej: 2"
                 suffix="veces/sem"
                 warning={computed.warnings?.energy}
-                quickPills={[
-                  { label: "0", value: 0 },
-                  { label: "1", value: 1 },
-                  { label: "3", value: 3 },
-                  { label: "5", value: 5 },
-                ]}
+               
               />
 
               <div className="space-y-2">
@@ -1657,12 +1619,7 @@ export default function CardioMetabolicApp() {
                     placeholder="Ej: 1"
                     suffix={friedPeriod === "month" ? "veces/mes" : "veces/sem"}
                     hint="Si lo dejas en blanco, no afecta."
-                    quickPills={[
-                      { label: "0", value: 0 },
-                      { label: "1", value: 1 },
-                      { label: "2", value: 2 },
-                      { label: "4", value: 4 },
-                    ]}
+                   
                   />
                 </div>
               </div>
@@ -1674,12 +1631,7 @@ export default function CardioMetabolicApp() {
                 onChange={setSleepHours}
                 placeholder="Ej: 7"
                 suffix="horas/noche"
-                quickPills={[
-                  { label: "5h", value: 5 },
-                  { label: "7h", value: 7 },
-                  { label: "8h", value: 8 },
-                  { label: "9h", value: 9 },
-                ]}
+               
               />
 
               <NumericInput
@@ -1689,12 +1641,7 @@ export default function CardioMetabolicApp() {
                 onChange={setActivityMinutesWeek}
                 placeholder="Ej: 150"
                 suffix="min/sem"
-                quickPills={[
-                  { label: "0", value: 0 },
-                  { label: "60", value: 60 },
-                  { label: "150", value: 150 },
-                  { label: "300", value: 300 },
-                ]}
+              
               />
 
               <Select
@@ -1718,13 +1665,7 @@ export default function CardioMetabolicApp() {
                   placeholder="Ej: 2"
                   suffix="tragos/sem"
                   hint="1 trago estándar ≈ 1 cerveza lata (350cc) · 1 copa vino (150cc) · 1 medida destilado (45cc)."
-                  quickPills={[
-                    { label: "0", value: 0 },
-                    { label: "2", value: 2 },
-                    { label: "5", value: 5 },
-                    { label: "10", value: 10 },
-                    { label: "15", value: 15 },
-                  ]}
+                
                 />
 
                 <Select
