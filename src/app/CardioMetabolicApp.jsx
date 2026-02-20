@@ -356,42 +356,42 @@ async function guardarEvaluacion({
   consentAccepted,
   consentVersion,
   ip_hash,
-  ua_hash, // lo recibimos, pero NO lo insertamos como columna
+  ua_hash, // se guardará dentro de answers, no como columna
 }) {
   const session_id = sessionIdRef.current ?? getOrCreateSessionId();
   const user_agent = typeof navigator !== "undefined" ? navigator.userAgent : null;
 
   const toNull = (v) => (v === "" || v === undefined ? null : v);
 
-  // ✅ Guardamos mvq + consentimiento dentro de answers (para no depender de columnas extras)
-  // ✅ Guardamos ua_hash dentro de answers (porque NO existe como columna)
+  // ✅ ua_hash dentro del JSON (porque no existe como columna)
   const safeAnswers = {
     ...answers,
-
-    consentAccepted: consentAccepted === true,
-    consentVersion: consentVersion ?? "short_v1",
-
-    mvqAwareness: toNull(mvqAwareness),
-    mvqMonthly: toNull(mvqMonthly),
-    mvqReco: toNull(mvqReco),
-    mvqWorkplace: toNull(mvqWorkplace),
-
-    // ✅ ua_hash va adentro del JSON, no como columna
     ua_hash: ua_hash ?? null,
   };
 
-  // ✅ ip_hash se guarda como columna (porque tú SÍ la tienes)
   const payload = {
+    // core
     answers: safeAnswers,
     score,
     risk_level: riskLevel,
+
+    // tracking (si existen en tu tabla; como antes te funcionó, las dejamos)
     session_id,
     user_agent,
     ip_hash: ip_hash ?? null,
-    // ❌ NO enviar ua_hash aquí
+
+    // ✅ consentimiento como columnas
+    consent_accepted: consentAccepted === true,
+    consent_version: consentVersion ?? "short_v1",
+
+    // ✅ MVQ como columnas
+    mvq_awareness: toNull(mvqAwareness),
+    mvq_monthly: toNull(mvqMonthly),
+    mvq_reco: toNull(mvqReco),
+    mvq_workplace: toNull(mvqWorkplace),
   };
 
-  // ✅ NO usar .select() para no requerir policy SELECT
+  // ✅ Sin select para no requerir policy SELECT
   const { error } = await supabase.from("assessments").insert(payload, { returning: "minimal" });
 
   if (error) {
@@ -1362,7 +1362,7 @@ useEffect(() => {
     return;
   }
 
-  // ✅ Guarda local (siempre)
+  // 1) Guarda local
   try {
     const payload = {
       date: new Date().toISOString(),
@@ -1380,11 +1380,29 @@ useEffect(() => {
     localStorage.setItem("cm_market_validation", JSON.stringify(next));
   } catch {}
 
-  // ✅ Por ahora, no hacemos UPDATE en Supabase (porque ya no dependemos de ID)
-  // Si quieres guardarlo en DB igual, lo correcto es:
-  // - crear tabla market_validation
-  // - insertar con session_id (sin update)
-  setMvqSaved(true);
+  // 2) Guarda en Supabase (update al último registro de esa sesión)
+  try {
+    const session_id = sessionIdRef.current ?? getOrCreateSessionId();
+
+    const { error } = await supabase
+      .from("assessments")
+      .update({
+        mvq_awareness: mvqAwareness,
+        mvq_monthly: mvqMonthly,
+        mvq_reco: mvqReco,
+        mvq_workplace: mvqWorkplace,
+      })
+      .eq("session_id", session_id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+
+    setMvqSaved(true);
+  } catch (e) {
+    console.error("No se pudo guardar MVQ en Supabase:", e);
+    setMvqSaved(true);
+  }
 };
 
   const printPDF = () => {
