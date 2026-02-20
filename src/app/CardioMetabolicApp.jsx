@@ -347,41 +347,50 @@ export default function CardioMetabolicApp() {
 
   // ✅ Función real para guardar
   async function guardarEvaluacion({
-    answers,
-    score,
-    riskLevel,
-    mvqAwareness,
-    mvqMonthly,
-    mvqReco,
-    mvqWorkplace,
-    ip_hash,
-    ua_hash,
-  }) {
-    const session_id = sessionIdRef.current ?? getOrCreateSessionId();
-    const user_agent = typeof navigator !== "undefined" ? navigator.userAgent : null;
+  answers,
+  score,
+  riskLevel,
+  mvqAwareness,
+  mvqMonthly,
+  mvqReco,
+  mvqWorkplace,
+  consentAccepted,     // ✅ nuevo
+  consentVersion,      // ✅ nuevo (opcional)
+  ip_hash,
+  ua_hash,
+}) {
+  const session_id = sessionIdRef.current ?? getOrCreateSessionId();
+  const user_agent = typeof navigator !== "undefined" ? navigator.userAgent : null;
 
-    const { data, error } = await supabase
-      .from("assessments")
-      .insert([
-        {
-          answers,
-          score,
-          risk_level: riskLevel,
-          mvq_awareness: mvqAwareness,
-          mvq_monthly: mvqMonthly,
-          mvq_reco: mvqReco,
-          mvq_workplace: mvqWorkplace, // ✅ si no existe columna, fallará y se verá en console
-          session_id,
-          user_agent,
-          ip_hash,
-          ua_hash,
-        },
-      ])
-      .select();
+  const { data, error } = await supabase
+    .from("assessments")
+    .insert([
+      {
+        answers,
+        score,
+        risk_level: riskLevel,
 
-    if (error) return { ok: false, error };
-    return { ok: true, data };
-  }
+        // ✅ Consentimiento: queda respaldado en DB
+        consent_accepted: consentAccepted === true,
+        consent_version: consentVersion ?? "short_v1",
+
+        // ✅ MVQ: si aún no se responde, se guarda como NULL (no “EMPTY”)
+        mvq_awareness: mvqAwareness ? mvqAwareness : null,
+        mvq_monthly: mvqMonthly ? mvqMonthly : null,
+        mvq_reco: mvqReco ? mvqReco : null,
+        mvq_workplace: mvqWorkplace ? mvqWorkplace : null, // ✅ si no existe columna, fallará y se verá en console
+
+        session_id,
+        user_agent,
+        ip_hash,
+        ua_hash,
+      },
+    ])
+    .select();
+
+  if (error) return { ok: false, error };
+  return { ok: true, data };
+}
 
   // Refs para scroll
   const topRef = useRef(null);
@@ -1180,16 +1189,23 @@ export default function CardioMetabolicApp() {
       };
 
       const res = await guardarEvaluacion({
-        answers,
-        score: computed.score,
-        riskLevel: computed.level,
-        mvqAwareness,
-        mvqMonthly,
-        mvqReco,
-        mvqWorkplace,
-        ip_hash: fp.ip_hash,
-        ua_hash: fp.ua_hash,
-      });
+  answers,
+  score: computed.score,
+  riskLevel: computed.level,
+
+  // ✅ consentimiento respaldado en Supabase
+  consentAccepted: true,
+  consentVersion: "short_v1",
+
+  // ✅ MVQ puede ir vacío aquí, se guardará NULL y luego se actualiza en el update
+  mvqAwareness,
+  mvqMonthly,
+  mvqReco,
+  mvqWorkplace,
+
+  ip_hash: fp.ip_hash,
+  ua_hash: fp.ua_hash,
+});
 
       if (res.ok && res.data?.[0]?.id) {
         localStorage.setItem("cm_last_assessment_id", res.data[0].id);
@@ -1529,59 +1545,73 @@ export default function CardioMetabolicApp() {
           </div>
         </header>
 
-        {/* ✅ CONSENTIMIENTO INFORMADO (antes de comenzar) */}
-        {!consentAccepted ? (
-          <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Antes de comenzar</h2>
-              <Badge>Consentimiento</Badge>
-            </div>
+   {/* ✅ CONSENTIMIENTO INFORMADO (antes de comenzar) */}
+{!consentAccepted ? (
+  <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
+    <div className="flex items-center justify-between">
+      <h2 className="text-lg font-semibold">Antes de comenzar</h2>
+      <Badge>Consentimiento</Badge>
+    </div>
 
-            <div className="rounded-xl border p-4">
-              <div className="font-semibold text-gray-900">✅ Consentimiento informado </div>
-              <div className="mt-2 text-sm text-gray-700 space-y-2">
-                <p>Esta evaluación es preventiva y educativa.</p>
-                <p>No entrega diagnósticos médicos ni reemplaza una consulta profesional.</p>
-                <p>
-                  Las respuestas se guardan de forma <span className="font-semibold">anónima y segura</span> y se utilizan solo con fines
-                  estadísticos y para mejorar la herramienta.
-                </p>
-                <p>Al continuar, usted acepta estas condiciones.</p>
-              </div>
+    <div className="rounded-xl border p-4">
+      <div className="font-semibold text-gray-900">
+        Consentimiento informado
+      </div>
 
-              <label className="mt-4 flex items-center gap-2 text-sm">
-                <input
-                  className="h-4 w-4 accent-slate-900"
-                  type="checkbox"
-                  checked={consentChecked}
-                  onChange={(e) => setConsentChecked(e.target.checked)}
-                />
-                ☐ He leído y acepto.
-              </label>
-            </div>
+      <div className="mt-2 text-sm text-gray-700 space-y-2">
+        <p>Esta evaluación es preventiva y educativa.</p>
+        <p>No entrega diagnósticos médicos ni reemplaza una consulta profesional.</p>
+        <p>
+          Las respuestas se guardan de forma{" "}
+          <span className="font-semibold">anónima y segura</span> y se utilizan
+          solo con fines estadísticos y para mejorar la herramienta.
+        </p>
+        <p>Al continuar, usted acepta estas condiciones.</p>
+      </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (!consentChecked) {
-                  alert("Para continuar, debes aceptar el consentimiento 🙂");
-                  return;
-                }
-                setConsentAccepted(true);
-                setTimeout(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
-              }}
-              className={classNames(
-                "w-full rounded-xl px-4 py-3 text-sm font-semibold transition",
-                consentChecked ? "bg-gray-900 text-white hover:opacity-95" : "bg-gray-200 text-gray-600"
-              )}
-            >
-              Comenzar evaluación
-            </button>
-          </section>
-        ) : null}
+      {/* ✅ Checkbox REAL (único) */}
+      <label className="mt-4 flex items-center gap-2 text-sm cursor-pointer">
+        <input
+          className="h-4 w-4 accent-slate-900"
+          type="checkbox"
+          checked={consentChecked}
+          onChange={(e) => setConsentChecked(e.target.checked)}
+        />
+        He leído y acepto.
+      </label>
+    </div>
 
-        {/* ✅ Si no acepta consentimiento, no mostramos el wizard */}
-        {consentAccepted ? (
+    <button
+      type="button"
+      onClick={() => {
+        if (!consentChecked) {
+          alert("Para continuar, debes aceptar el consentimiento 🙂");
+          return;
+        }
+        setConsentAccepted(true);
+        setTimeout(
+          () =>
+            topRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            }),
+          0
+        );
+      }}
+      className={classNames(
+        "w-full rounded-xl px-4 py-3 text-sm font-semibold transition",
+        consentChecked
+          ? "bg-gray-900 text-white hover:opacity-95"
+          : "bg-gray-200 text-gray-600"
+      )}
+    >
+      Comenzar evaluación
+    </button>
+  </section>
+) : null}
+
+{/* ✅ Si no acepta consentimiento, no mostramos el wizard */}
+{consentAccepted ? (
           <>
             {/* Wizard header (tabs + barra) */}
             <section className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
