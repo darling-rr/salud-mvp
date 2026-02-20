@@ -356,25 +356,31 @@ async function guardarEvaluacion({
   consentAccepted,
   consentVersion,
   ip_hash,
-  ua_hash,
+  ua_hash, // lo recibimos, pero NO lo insertamos como columna
 }) {
   const session_id = sessionIdRef.current ?? getOrCreateSessionId();
   const user_agent = typeof navigator !== "undefined" ? navigator.userAgent : null;
 
   const toNull = (v) => (v === "" || v === undefined ? null : v);
 
-  // ✅ Metemos consentimiento + MVQ dentro de answers (para evitar 400 si no existen columnas mvq_* o consent_*)
+  // ✅ Guardamos mvq + consentimiento dentro de answers (para no depender de columnas extras)
+  // ✅ Guardamos ua_hash dentro de answers (porque NO existe como columna)
   const safeAnswers = {
     ...answers,
+
     consentAccepted: consentAccepted === true,
     consentVersion: consentVersion ?? "short_v1",
+
     mvqAwareness: toNull(mvqAwareness),
     mvqMonthly: toNull(mvqMonthly),
     mvqReco: toNull(mvqReco),
     mvqWorkplace: toNull(mvqWorkplace),
+
+    // ✅ ua_hash va adentro del JSON, no como columna
+    ua_hash: ua_hash ?? null,
   };
 
-  // ✅ Payload mínimo “seguro” (solo columnas que casi seguro tienes)
+  // ✅ ip_hash se guarda como columna (porque tú SÍ la tienes)
   const payload = {
     answers: safeAnswers,
     score,
@@ -382,11 +388,10 @@ async function guardarEvaluacion({
     session_id,
     user_agent,
     ip_hash: ip_hash ?? null,
-    ua_hash: ua_hash ?? null,
+    // ❌ NO enviar ua_hash aquí
   };
 
-  // ✅ CLAVE: NO usar .select() para no requerir policy SELECT.
-  // returning:'minimal' evita devolver filas.
+  // ✅ NO usar .select() para no requerir policy SELECT
   const { error } = await supabase.from("assessments").insert(payload, { returning: "minimal" });
 
   if (error) {
@@ -399,7 +404,7 @@ async function guardarEvaluacion({
     return { ok: false, error };
   }
 
-  console.log("✅ Supabase insert ok (minimal)");
+  console.log("✅ Supabase insert ok");
   return { ok: true };
 }
   // Refs para scroll
