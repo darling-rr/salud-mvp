@@ -176,6 +176,26 @@ function NumericInput({ id, label, value, onChange, placeholder, suffix, hint, w
   );
 }
 
+function TextInput({ id, label, value, onChange, placeholder, hint }) {
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className="block">
+        <div className="text-sm font-medium">{label}</div>
+        {hint ? <div className="text-xs text-gray-500">{hint}</div> : null}
+      </label>
+      <input
+        id={id}
+        type="text"
+        className="w-full rounded-xl border px-3 py-2 outline-none focus:ring bg-white text-slate-900 placeholder:text-slate-400 border-slate-300"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+      />
+    </div>
+  );
+}
+
 function Select({ id, label, value, onChange, options, hint }) {
   return (
     <div className="space-y-1">
@@ -216,6 +236,10 @@ export default function CardioMetabolicApp() {
     sessionIdRef.current = getOrCreateSessionId();
   }, []);
 
+  // ✅ Consentimiento informado (gate)
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+
   // Wizard
   const steps = [
     { key: "datos", title: "Datos" },
@@ -240,6 +264,10 @@ export default function CardioMetabolicApp() {
   const [age, setAge] = useState("");
   const [sex, setSex] = useState("F"); // F | M
 
+  // ✅ Nuevos: ciudad + tipo de trabajo
+  const [city, setCity] = useState("");
+  const [jobType, setJobType] = useState("sedentary"); // sedentary | mixed | physical
+
   // Antropometría
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState(""); // cm o metros (auto)
@@ -253,6 +281,7 @@ export default function CardioMetabolicApp() {
   const [glucose, setGlucose] = useState(""); // mg/dL
   const [hba1c, setHba1c] = useState(""); // %
   const [cholTotal, setCholTotal] = useState(""); // mg/dL
+  const [triglycerides, setTriglycerides] = useState(""); // ✅ mg/dL
 
   // Dieta/hábitos
   const [breadsPerDay, setBreadsPerDay] = useState(""); // unid/día
@@ -282,8 +311,9 @@ export default function CardioMetabolicApp() {
   const [hasDyslip, setHasDyslip] = useState("no");
   const [hasCVD, setHasCVD] = useState("no");
 
-  // Familiar CV temprano
-  const [famPrematureCVD, setFamPrematureCVD] = useState("no"); // no|yes
+  // ✅ Familiar CV temprano (especificar familiar directo)
+  // no | father | mother | siblings
+  const [famPrematureCVD, setFamPrematureCVD] = useState("no");
 
   // Tiroides
   const [thyroidDx, setThyroidDx] = useState("none"); // none | hypo | hyper
@@ -297,6 +327,7 @@ export default function CardioMetabolicApp() {
   const [mvqAwareness, setMvqAwareness] = useState(""); // "known" | "suspected" | "didntknow"
   const [mvqMonthly, setMvqMonthly] = useState(""); // "yes" | "maybe" | "no"
   const [mvqReco, setMvqReco] = useState(""); // "yes" | "maybe" | "no"
+  const [mvqWorkplace, setMvqWorkplace] = useState(""); // ✅ nuevo: "yes" | "maybe" | "no"
   const [mvqSaved, setMvqSaved] = useState(false);
 
   // Fingerprint técnico (ip + user agent hash)
@@ -314,7 +345,7 @@ export default function CardioMetabolicApp() {
     })();
   }, []);
 
-  // ✅ Función real para guardar (tabla: assessments; columnas: answers, score, risk_level)
+  // ✅ Función real para guardar
   async function guardarEvaluacion({
     answers,
     score,
@@ -322,6 +353,7 @@ export default function CardioMetabolicApp() {
     mvqAwareness,
     mvqMonthly,
     mvqReco,
+    mvqWorkplace,
     ip_hash,
     ua_hash,
   }) {
@@ -338,6 +370,7 @@ export default function CardioMetabolicApp() {
           mvq_awareness: mvqAwareness,
           mvq_monthly: mvqMonthly,
           mvq_reco: mvqReco,
+          mvq_workplace: mvqWorkplace, // ✅ si no existe columna, fallará y se verá en console
           session_id,
           user_agent,
           ip_hash,
@@ -366,6 +399,7 @@ export default function CardioMetabolicApp() {
     const G = toNum(glucose);
     const A1c = toNum(hba1c);
     const CT = toNum(cholTotal);
+    const TG = toNum(triglycerides);
 
     const breads = toNum(breadsPerDay);
     const sugary = toNum(sugaryDrinksPerWeek);
@@ -418,10 +452,29 @@ export default function CardioMetabolicApp() {
       if (A >= 45) risksNoMod.push("Edad (≥45 años)");
     }
 
-    if (famPrematureCVD === "yes") {
+    // ✅ Familiar directo CV temprano
+    const famIsYes = famPrematureCVD !== "no";
+    if (famIsYes) {
       score += 6;
-      risksNoMod.push("Antecedente familiar cardiovascular temprano");
-      add("nomod", "Antecedente familiar cardiovascular temprano", 6);
+      const famLabel =
+        famPrematureCVD === "father"
+          ? "Padre"
+          : famPrematureCVD === "mother"
+          ? "Madre"
+          : "Hermanos/as";
+      risksNoMod.push(`Antecedente familiar cardiovascular temprano (familiar directo: ${famLabel})`);
+      add("nomod", `Antecedente familiar cardiovascular temprano (${famLabel})`, 6);
+    }
+
+    // --- SEGMENTACIÓN LABORAL (riesgo ocupacional) ---
+    // (pensado para tu segmentación; suma suave si es mayormente sedentario)
+    if (jobType === "sedentary") {
+      score += 2;
+      risksMod.push("Trabajo mayormente sedentario");
+      add("mod", "Trabajo mayormente sedentario", 2);
+    } else if (jobType === "mixed") {
+      score += 1;
+      add("mod", "Trabajo mixto", 1);
     }
 
     // --- MODIFICABLES / MEDICIONES ---
@@ -532,6 +585,19 @@ export default function CardioMetabolicApp() {
         score += 6;
         risksMod.push("Colesterol total en rango límite");
         add("mod", "Colesterol total en rango límite", 6);
+      }
+    }
+
+    // ✅ Triglicéridos (opcional)
+    if (TG !== null) {
+      if (TG >= 200) {
+        score += 6;
+        risksMod.push("Triglicéridos elevados");
+        add("mod", "Triglicéridos elevados", 6);
+      } else if (TG >= 150) {
+        score += 3;
+        risksMod.push("Triglicéridos en rango límite");
+        add("mod", "Triglicéridos en rango límite", 3);
       }
     }
 
@@ -698,6 +764,7 @@ export default function CardioMetabolicApp() {
     if (G !== null && (G < 40 || G > 600)) warnings.glucose = "Glicemia fuera de rango típico (40–600 mg/dL).";
     if (A1c !== null && (A1c < 3 || A1c > 20)) warnings.hba1c = "HbA1c fuera de rango típico (3–20%).";
     if (CT !== null && (CT < 80 || CT > 500)) warnings.chol = "Colesterol total fuera de rango típico (80–500 mg/dL).";
+    if (TG !== null && (TG < 30 || TG > 2000)) warnings.trig = "Triglicéridos fuera de rango típico (30–2000 mg/dL).";
     if (energy !== null && (energy < 0 || energy > 50)) warnings.energy = "Energéticas fuera de rango típico (0–50/sem).";
 
     return {
@@ -727,11 +794,14 @@ export default function CardioMetabolicApp() {
         glucose: G === null,
         hba1c: A1c === null,
         cholTotal: CT === null,
+        triglycerides: TG === null,
       },
     };
   }, [
     age,
     sex,
+    city,
+    jobType,
     weight,
     height,
     waist,
@@ -740,6 +810,7 @@ export default function CardioMetabolicApp() {
     glucose,
     hba1c,
     cholTotal,
+    triglycerides,
     breadsPerDay,
     sugaryDrinksPerWeek,
     proteinServingsPerDay,
@@ -790,6 +861,12 @@ export default function CardioMetabolicApp() {
         tips: ["Cambia por agua/infusión", "Evita energéticas tarde (mejora sueño)", "Si necesitas: café 1–2 al día (sin azúcar)"],
       });
     }
+    if (has("triglic")) {
+      out.push({
+        title: "Bajar triglicéridos (si aplica)",
+        tips: ["Reduce azúcar/bebidas azucaradas", "Aumenta actividad física", "Prioriza grasas saludables (pescado, frutos secos) y fibra"],
+      });
+    }
     if (has("imc")) {
       out.push({
         title: "Bajar 5–10% del peso (si aplica)",
@@ -800,6 +877,12 @@ export default function CardioMetabolicApp() {
       out.push({
         title: "Subir actividad física",
         tips: ["Meta: 150 min/sem", "Empieza con 10–20 min y sube", "Fuerza 2 días/sem (sentadillas, push-ups, remo)"],
+      });
+    }
+    if (has("sedentario")) {
+      out.push({
+        title: "Cortar sedentarismo laboral",
+        tips: ["Micro-pausas 2–3 min cada 60–90 min", "10 min caminata post-almuerzo", "Objetivo: 6–8 mil pasos/día (si puedes)"],
       });
     }
     if (has("pan")) {
@@ -863,7 +946,7 @@ export default function CardioMetabolicApp() {
     return top.map((x) => x.label);
   }, [computed.contrib]);
 
-  // Controles CESFAM
+  // Controles CESFAM (se mantiene lógica, agregamos triglicéridos como parte de exámenes si corresponde)
   const suggestedControls = useMemo(() => {
     const A = computed.A;
     if (A === null) return [];
@@ -942,7 +1025,7 @@ export default function CardioMetabolicApp() {
         key: "LIP",
         title: "Control de lípidos",
         detail: "Seguimiento de perfil lipídico y tratamiento según indicación.",
-        ask: "Qué pedir: “perfil lipídico” y revisión de tratamiento/objetivos.",
+        ask: "Qué pedir: “perfil lipídico” (ideal incluye triglicéridos) y revisión de tratamiento/objetivos.",
       });
     }
     if (thyroidDx === "hypo") {
@@ -975,7 +1058,7 @@ export default function CardioMetabolicApp() {
         key: "CM",
         title: "Control cardiometabólico (APS)",
         detail:
-          "Evaluación de PA, glicemia/HbA1c y lípidos según criterio clínico y disponibilidad (especialmente si hay valores alterados o síntomas).",
+          "Evaluación de PA, glicemia/HbA1c y lípidos (incluye triglicéridos) según criterio clínico y disponibilidad (especialmente si hay valores alterados o síntomas).",
         ask: "Qué pedir: “control cardiometabólico / cardiovascular” y exámenes según criterio.",
       });
     }
@@ -1002,6 +1085,7 @@ export default function CardioMetabolicApp() {
     if (m.glucose) out.push({ label: "Glicemia", goStep: 0 });
     if (m.hba1c) out.push({ label: "HbA1c", goStep: 0 });
     if (m.cholTotal) out.push({ label: "Colesterol total", goStep: 0 });
+    if (m.triglycerides) out.push({ label: "Triglicéridos", goStep: 0 });
     return out;
   }, [computed.missing]);
 
@@ -1019,6 +1103,8 @@ export default function CardioMetabolicApp() {
 
   // ✅ Guardar SOLO al llegar a “Resultado”
   useEffect(() => {
+    if (!consentAccepted) return;
+
     if (step !== 3) {
       savedForThisResultRef.current = false;
       savedToSupabaseRef.current = false; // reset para el próximo resultado
@@ -1056,8 +1142,11 @@ export default function CardioMetabolicApp() {
       console.log("🧪 Intentando guardar en Supabase desde step 3");
 
       const answers = {
+        consentAccepted: true,
         age,
         sex,
+        city,
+        jobType,
         weight,
         height,
         waist,
@@ -1066,6 +1155,7 @@ export default function CardioMetabolicApp() {
         glucose,
         hba1c,
         cholTotal,
+        triglycerides,
         breadsPerDay,
         sugaryDrinksPerWeek,
         proteinServingsPerDay,
@@ -1090,26 +1180,30 @@ export default function CardioMetabolicApp() {
       };
 
       const res = await guardarEvaluacion({
-  answers,
-  score: computed.score,
-  riskLevel: computed.level,
-   mvqAwareness,
-  mvqMonthly,
-   mvqReco,
-   ip_hash: fp.ip_hash,
-    ua_hash: fp.ua_hash,
-   });
+        answers,
+        score: computed.score,
+        riskLevel: computed.level,
+        mvqAwareness,
+        mvqMonthly,
+        mvqReco,
+        mvqWorkplace,
+        ip_hash: fp.ip_hash,
+        ua_hash: fp.ua_hash,
+      });
 
       if (res.ok && res.data?.[0]?.id) {
         localStorage.setItem("cm_last_assessment_id", res.data[0].id);
       }
     })();
   }, [
+    consentAccepted,
     step,
     computed.score,
     computed.level,
     age,
     sex,
+    city,
+    jobType,
     weight,
     height,
     waist,
@@ -1118,6 +1212,7 @@ export default function CardioMetabolicApp() {
     glucose,
     hba1c,
     cholTotal,
+    triglycerides,
     breadsPerDay,
     sugaryDrinksPerWeek,
     proteinServingsPerDay,
@@ -1142,6 +1237,9 @@ export default function CardioMetabolicApp() {
     mvqAwareness,
     mvqMonthly,
     mvqReco,
+    mvqWorkplace,
+    fp.ip_hash,
+    fp.ua_hash,
   ]);
 
   // Reset de encuesta cuando entras a Resultado (para que pueda responder de nuevo)
@@ -1151,6 +1249,7 @@ export default function CardioMetabolicApp() {
     setMvqAwareness("");
     setMvqMonthly("");
     setMvqReco("");
+    setMvqWorkplace("");
   }, [step]);
 
   // Progreso wizard
@@ -1164,10 +1263,24 @@ export default function CardioMetabolicApp() {
   // Resumen
   const buildSummaryText = () => {
     const d = new Date().toLocaleDateString();
+    const jobLabel = jobType === "sedentary" ? "Mayormente sedentario" : jobType === "mixed" ? "Mixto" : "Físico";
+    const famLabel =
+      famPrematureCVD === "no"
+        ? "No / no sé"
+        : famPrematureCVD === "father"
+        ? "Sí (Padre)"
+        : famPrematureCVD === "mother"
+        ? "Sí (Madre)"
+        : "Sí (Hermanos/as)";
+
     const lines = [
       `Evaluación cardiometabólica (MVP) — ${d}`,
       `Score: ${computed.score}/100 · Nivel: ${computed.level}`,
-    ];
+      city ? `Ciudad: ${city}` : null,
+      `Tipo de trabajo: ${jobLabel}`,
+      `Antecedente familiar CV temprano: ${famLabel}`,
+    ].filter(Boolean);
+
     if (drivers?.length) lines.push(`Principales factores detectados: ${drivers.join(" · ")}`);
 
     if (computed.bp?.hasBP) lines.push(`Presión arterial: ${computed.bp.sys}/${computed.bp.dia} mmHg`);
@@ -1177,6 +1290,9 @@ export default function CardioMetabolicApp() {
 
     const e = toNum(energyDrinksPerWeek);
     lines.push(`Energéticas: ${e === null ? "no informado" : `${e} veces/sem`}`);
+
+    const tg = toNum(triglycerides);
+    lines.push(`Triglicéridos: ${tg === null ? "no informado" : `${tg} mg/dL`}`);
 
     const alcTxt = `Alcohol: ${alcoholLabel(computed.alcohol?.category)} (${computed.alcohol?.drinksPerWeek ?? 0} tragos/sem, atracón: ${
       computed.alcohol?.binge === "yes" ? "sí" : "no"
@@ -1207,12 +1323,12 @@ export default function CardioMetabolicApp() {
   };
 
   const saveMarketValidation = async () => {
-    if (!mvqAwareness || !mvqMonthly || !mvqReco) {
-      alert("Porfa responde las 3 preguntas 🙂");
+    if (!mvqAwareness || !mvqMonthly || !mvqReco || !mvqWorkplace) {
+      alert("Porfa responde todas las preguntas 🙂");
       return;
     }
 
-    // guarda local (lo que ya hacías)
+    // guarda local
     try {
       const payload = {
         date: new Date().toISOString(),
@@ -1221,11 +1337,12 @@ export default function CardioMetabolicApp() {
         awareness: mvqAwareness,
         monthly: mvqMonthly,
         recommendations: mvqReco,
+        workplace: mvqWorkplace,
       };
 
       const raw = localStorage.getItem("cm_market_validation");
       const prev = raw ? JSON.parse(raw) : [];
-      const next = [payload, ...(Array.isArray(prev) ? prev : [])].slice(0, 200);
+      const next = [payload, ...(Array.isArray(prev) ? prev : [])].slice(0, 300);
       localStorage.setItem("cm_market_validation", JSON.stringify(next));
     } catch {}
 
@@ -1242,6 +1359,7 @@ export default function CardioMetabolicApp() {
           mvq_awareness: mvqAwareness,
           mvq_monthly: mvqMonthly,
           mvq_reco: mvqReco,
+          mvq_workplace: mvqWorkplace,
         })
         .eq("id", id);
 
@@ -1358,16 +1476,13 @@ export default function CardioMetabolicApp() {
   return (
     <main
       ref={topRef}
-      // ✅ FIX dark-mode: texto explícito
       className="min-h-screen bg-[#f6f7fb] text-slate-900 p-3 sm:p-4 md:p-7"
-      // ✅ FIX dark-mode: fuerza esquema light en este documento
       style={{ colorScheme: "light" }}
     >
       <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-5">
         {/* HERO */}
         <header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="space-y-4">
-            {/* Icon + Title */}
             <div className="space-y-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
@@ -1383,7 +1498,6 @@ export default function CardioMetabolicApp() {
               </p>
             </div>
 
-            {/* Cards */}
             <div className="space-y-2">
               {heroCards.map((card) => {
                 const clickable = Boolean(card.onClick);
@@ -1412,804 +1526,1002 @@ export default function CardioMetabolicApp() {
                 );
               })}
             </div>
-
-            {/* ✅ Botones removidos del HERO (ahora van al final del Resultado) */}
           </div>
         </header>
 
-        {/* Wizard header (tabs + barra) */}
-        <section className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            {/* Título del paso */}
-            <div className="text-base font-semibold text-slate-900">
-              Paso {step + 1} de {steps.length}:{" "}
-              <span className="font-medium">{steps[step].title}</span>
-            </div>
-
-            {/* Porcentaje */}
-            <div className="text-sm font-medium text-gray-600">{progressPct}%</div>
-          </div>
-
-          {/* Barra */}
-          <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-            <div className="h-full rounded-full bg-gray-900 transition-all" style={{ width: `${progressPct}%` }} />
-          </div>
-
-          {/* Tabs */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {steps.map((s, i) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => goStep(i)}
-                className={classNames(
-                  "rounded-full border border-slate-300 px-4 py-1.5 text-sm transition",
-                  i === step ? "border-[#15244b] bg-[#15244b] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                )}
-              >
-                {s.title}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* STEP 1: Datos */}
-        {step === 0 ? (
+        {/* ✅ CONSENTIMIENTO INFORMADO (antes de comenzar) */}
+        {!consentAccepted ? (
           <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Datos</h2>
-              <Badge>Opcional = no afecta si está vacío</Badge>
+              <h2 className="text-lg font-semibold">Antes de comenzar</h2>
+              <Badge>Consentimiento</Badge>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <NumericInput id="age" label="Edad" value={age} onChange={setAge} placeholder="Ej: 31" suffix="años" warning={computed.warnings?.age} />
-
-              <Select
-                id="sex"
-                label="Sexo"
-                value={sex}
-                onChange={setSex}
-                options={[
-                  { value: "F", label: "Femenino" },
-                  { value: "M", label: "Masculino" },
-                ]}
-              />
-
-              <NumericInput id="weight" label="Peso" value={weight} onChange={setWeight} placeholder="Ej: 66" suffix="kg" warning={computed.warnings?.weight} />
-
-              <NumericInput
-                id="height"
-                label="Talla"
-                value={height}
-                onChange={setHeight}
-                placeholder="Ej: 177 o 1.77"
-                suffix="cm"
-                hint="Puedes escribir 1.77 y se interpretará como metros."
-                warning={computed.warnings?.height}
-              />
-
-              <NumericInput
-                id="waist"
-                label="Circunferencia de cintura (opcional)"
-                value={waist}
-                onChange={setWaist}
-                placeholder="Si no sabes, déjalo en blanco"
-                suffix="cm"
-                hint="Aumenta precisión del resultado."
-                warning={computed.warnings?.waist}
-              />
-
-              {/* Presión arterial (opcional) */}
-              <div className="space-y-2 md:col-span-2">
-                <div className="text-sm font-medium">Presión arterial (opcional)</div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <NumericInput
-                    id="bpSys"
-                    label="Sistólica"
-                    value={bpSys}
-                    onChange={setBpSys}
-                    placeholder="Ej: 120"
-                    suffix="mmHg"
-                    hint="Ideal: medir en reposo (5 min), sentado/a."
-                    warning={computed.warnings?.bpSys}
-                  />
-                  <NumericInput
-                    id="bpDia"
-                    label="Diastólica"
-                    value={bpDia}
-                    onChange={setBpDia}
-                    placeholder="Ej: 80"
-                    suffix="mmHg"
-                    hint="Si no la sabes, puedes dejarlo en blanco (no afecta)."
-                    warning={computed.warnings?.bpDia}
-                  />
-                </div>
-
-                {computed.bp?.hasBP ? (
-                  <div className="text-xs text-gray-600">
-                    Ingresado:{" "}
-                    <span className="font-semibold">
-                      {computed.bp.sys}/{computed.bp.dia} mmHg
-                    </span>
-                  </div>
-                ) : (
-                  <div className="text-xs text-gray-600">Si no la conoces, déjalo en blanco. El score funciona igual.</div>
-                )}
+            <div className="rounded-xl border p-4">
+              <div className="font-semibold text-gray-900">✅ Consentimiento informado — versión corta (MVP)</div>
+              <div className="mt-2 text-sm text-gray-700 space-y-2">
+                <p>Esta evaluación es preventiva y educativa.</p>
+                <p>No entrega diagnósticos médicos ni reemplaza una consulta profesional.</p>
+                <p>
+                  Las respuestas se guardan de forma <span className="font-semibold">anónima y segura</span> y se utilizan solo con fines
+                  estadísticos y para mejorar la herramienta.
+                </p>
+                <p>Al continuar, usted acepta estas condiciones.</p>
               </div>
 
-              <NumericInput id="glucose" label="Glicemia (opcional)" value={glucose} onChange={setGlucose} placeholder="Ej: 92" suffix="mg/dL" warning={computed.warnings?.glucose} />
-
-              <NumericInput id="hba1c" label="HbA1c (opcional)" value={hba1c} onChange={setHba1c} placeholder="Ej: 5.4" suffix="%" warning={computed.warnings?.hba1c} />
-
-              <NumericInput id="chol" label="Colesterol total (opcional)" value={cholTotal} onChange={setCholTotal} placeholder="Ej: 180" suffix="mg/dL" warning={computed.warnings?.chol} />
+              <label className="mt-4 flex items-center gap-2 text-sm">
+                <input
+                  className="h-4 w-4 accent-slate-900"
+                  type="checkbox"
+                  checked={consentChecked}
+                  onChange={(e) => setConsentChecked(e.target.checked)}
+                />
+                ☐ He leído y acepto.
+              </label>
             </div>
 
-            {missingList.length ? (
-              <div className="rounded-xl border p-4">
-                <div className="font-semibold">Para afinar el resultado (opcional)</div>
-                <div className="mt-2 text-sm text-gray-700">
-                  Puedes agregar: {missingList.map((m) => m.label).join(" · ")}.
-                </div>
-
-                {computed.missing?.waist ? (
-                  <div className="mt-2 text-xs text-gray-600">
-                    Tip cintura: mide a nivel del ombligo, al final de una espiración, sin apretar la cinta.
-                  </div>
-                ) : null}
-
-                <div className="mt-2 text-xs text-gray-600">
-                  Si no los tienes, puedes avanzar igual. El puntaje funciona sin estos datos.
-                </div>
-              </div>
-            ) : null}
-
-            <StepNav />
+            <button
+              type="button"
+              onClick={() => {
+                if (!consentChecked) {
+                  alert("Para continuar, debes aceptar el consentimiento 🙂");
+                  return;
+                }
+                setConsentAccepted(true);
+                setTimeout(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+              }}
+              className={classNames(
+                "w-full rounded-xl px-4 py-3 text-sm font-semibold transition",
+                consentChecked ? "bg-gray-900 text-white hover:opacity-95" : "bg-gray-200 text-gray-600"
+              )}
+            >
+              Comenzar evaluación
+            </button>
           </section>
         ) : null}
 
-        {/* STEP 2: Hábitos */}
-        {step === 1 ? (
-          <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Hábitos</h2>
-            
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <NumericInput id="breads" label="Pan al día" value={breadsPerDay} onChange={setBreadsPerDay} placeholder="Ej: 2" suffix="unid/día" />
-
-              <NumericInput id="sugary" label="Bebidas azucaradas / dulces" value={sugaryDrinksPerWeek} onChange={setSugaryDrinksPerWeek} placeholder="Ej: 3" suffix="veces/sem" />
-
-              <NumericInput
-                id="protein"
-                label="Proteína (aprox.)"
-                value={proteinServingsPerDay}
-                onChange={setProteinServingsPerDay}
-                placeholder="Ej: 2"
-                suffix="porciones/día"
-                hint="Ejemplo: 1 porción = 1 huevo + 1 lámina jamón / 1 lata jurel / 1 taza legumbres."
-              />
-
-              <Select
-                id="extraSalt"
-                label="¿Añades sal extra a la comida?"
-                value={extraSalt}
-                onChange={setExtraSalt}
-                options={[
-                  { value: "never", label: "Nunca" },
-                  { value: "sometimes", label: "A veces" },
-                  { value: "often", label: "Frecuentemente" },
-                ]}
-                hint="Ej: agregar sal al plato ya servido."
-              />
-
-              <NumericInput
-                id="energy"
-                label="Bebidas energéticas"
-                value={energyDrinksPerWeek}
-                onChange={setEnergyDrinksPerWeek}
-                placeholder="Ej: 2"
-                suffix="veces/sem"
-                warning={computed.warnings?.energy}
-              />
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Frituras</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Select
-                    id="friedPeriod"
-                    label="Periodo"
-                    value={friedPeriod}
-                    onChange={setFriedPeriod}
-                    options={[
-                      { value: "week", label: "Por semana" },
-                      { value: "month", label: "Por mes" },
-                    ]}
-                  />
-                  <NumericInput
-                    id="friedCount"
-                    label="Cantidad"
-                    value={friedCount}
-                    onChange={setFriedCount}
-                    placeholder="Ej: 1"
-                    suffix={friedPeriod === "month" ? "veces/mes" : "veces/sem"}
-                    hint="Si lo dejas en blanco, no afecta."
-                  />
+        {/* ✅ Si no acepta consentimiento, no mostramos el wizard */}
+        {consentAccepted ? (
+          <>
+            {/* Wizard header (tabs + barra) */}
+            <section className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-base font-semibold text-slate-900">
+                  Paso {step + 1} de {steps.length}: <span className="font-medium">{steps[step].title}</span>
                 </div>
+                <div className="text-sm font-medium text-gray-600">{progressPct}%</div>
               </div>
 
-              <NumericInput id="sleep" label="Sueño" value={sleepHours} onChange={setSleepHours} placeholder="Ej: 7" suffix="horas/noche" />
+              <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                <div className="h-full rounded-full bg-gray-900 transition-all" style={{ width: `${progressPct}%` }} />
+              </div>
 
-              <NumericInput id="activity" label="Actividad física" value={activityMinutesWeek} onChange={setActivityMinutesWeek} placeholder="Ej: 150" suffix="min/sem" />
-
-              <Select
-                id="smoking"
-                label="Tabaco"
-                value={smoking}
-                onChange={setSmoking}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-
-              {/* Alcohol */}
-              <div className="space-y-3">
-                <NumericInput
-                  id="alcoholDrinksPerWeek"
-                  label="Alcohol (tragos estándar)"
-                  value={alcoholDrinksPerWeek}
-                  onChange={setAlcoholDrinksPerWeek}
-                  placeholder="Ej: 2"
-                  suffix="tragos/sem"
-                  hint="1 trago estándar ≈ 1 cerveza lata (350cc) · 1 copa vino (150cc) · 1 medida destilado (45cc)."
-                />
-
-                <Select
-                  id="alcoholBinge"
-                  label="¿Atracón (binge) en el último mes?"
-                  value={alcoholBinge}
-                  onChange={setAlcoholBinge}
-                  hint="Atracón ≈ 4+ tragos (mujer) o 5+ (hombre) en una ocasión."
-                  options={[
-                    { value: "no", label: "No" },
-                    { value: "yes", label: "Sí" },
-                  ]}
-                />
-
-                <div className="text-xs text-gray-600">
-                  Categoría estimada:{" "}
-                  <span className="font-semibold">
-                    {alcoholLabel(
-                      alcoholCategory({
-                        drinksPerWeek: toNum(alcoholDrinksPerWeek) ?? 0,
-                        binge: alcoholBinge,
-                        sex,
-                      })
+              <div className="mt-4 flex flex-wrap gap-2">
+                {steps.map((s, i) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => goStep(i)}
+                    className={classNames(
+                      "rounded-full border border-slate-300 px-4 py-1.5 text-sm transition",
+                      i === step ? "border-[#15244b] bg-[#15244b] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
                     )}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <StepNav />
-          </section>
-        ) : null}
-
-        {/* STEP 3: Salud */}
-        {step === 2 ? (
-          <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Salud, antecedentes y estrés</h2>
-              <Badge>Esto ayuda a personalizar</Badge>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Select
-                id="hasHTN"
-                label="¿HTA diagnosticada?"
-                value={hasHTN}
-                onChange={setHasHTN}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-              <Select
-                id="hasDM"
-                label="¿Diabetes diagnosticada?"
-                value={hasDM}
-                onChange={setHasDM}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-              <Select
-                id="hasDyslip"
-                label="¿Dislipidemia diagnosticada?"
-                value={hasDyslip}
-                onChange={setHasDyslip}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-              <Select
-                id="hasCVD"
-                label="¿Enfermedad cardiovascular (infarto/ACV)?"
-                value={hasCVD}
-                onChange={setHasCVD}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-
-              <Select
-                id="famPrematureCVD"
-                label="Antecedente familiar CV temprano"
-                value={famPrematureCVD}
-                onChange={setFamPrematureCVD}
-                options={[
-                  { value: "no", label: "No / no sé" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-
-              <Select
-                id="thyroidDx"
-                label="¿Hipo/Hipertiroidismo diagnosticado?"
-                value={thyroidDx}
-                onChange={setThyroidDx}
-                options={[
-                  { value: "none", label: "No" },
-                  { value: "hypo", label: "Hipotiroidismo" },
-                  { value: "hyper", label: "Hipertiroidismo" },
-                ]}
-              />
-
-              <Select
-                id="chestPain"
-                label="Dolor/opresión en el pecho"
-                value={chestPain}
-                onChange={setChestPain}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-              <Select
-                id="easyFatigue"
-                label="¿Fatiga fácil (más de lo habitual)?"
-                value={easyFatigue}
-                onChange={setEasyFatigue}
-                options={[
-                  { value: "no", label: "No" },
-                  { value: "yes", label: "Sí" },
-                ]}
-              />
-              <Select
-                id="stressFreq"
-                label="Estrés (últimas 2 semanas)"
-                value={stressFreq}
-                onChange={setStressFreq}
-                options={[
-                  { value: "never", label: "Rara vez" },
-                  { value: "sometimes", label: "A veces" },
-                  { value: "often", label: "Frecuente" },
-                ]}
-              />
-            </div>
-
-            <div className="rounded-xl border p-4">
-              <div className="font-semibold">Importante</div>
-              <div className="mt-2 text-sm text-gray-700">
-                Si tienes <span className="font-semibold">dolor de pecho</span>, falta de aire importante, desmayo,
-                debilidad súbita o síntomas nuevos intensos, <span className="font-semibold">consulta URGENCIAS</span>.
-              </div>
-              <div className="mt-2 text-xs text-gray-600">
-                *Orientación preventiva. No reemplaza evaluación clínica ni controles de enfermedades crónicas.
-              </div>
-            </div>
-
-            <StepNav />
-          </section>
-        ) : null}
-
-        {/* STEP 4: Resultado */}
-        {step === 3 ? (
-          <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Resultado</h2>
-              <div className="flex items-center gap-2">
-                <Badge>{levelChip}</Badge>
-                {last?.date ? (
-                  <span className="text-xs text-gray-600">
-                    Último: {new Date(last.date).toLocaleDateString()} · {last.score}/100
-                  </span>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Score con barra */}
-            <div className="rounded-xl border p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm text-gray-600">Riesgo estimado</div>
-                  <div className="mt-1 flex items-end gap-3">
-                    <div className="text-3xl font-bold">{computed.score}/100</div>
-                    <div className="text-sm">
-                      Nivel: <span className="font-semibold">{computed.level}</span>
-                    </div>
-                  </div>
-
-                  {computed.bp?.hasBP ? (
-                    <div className="mt-2 text-xs text-gray-600">
-                      PA informada:{" "}
-                      <span className="font-semibold">
-                        {computed.bp.sys}/{computed.bp.dia} mmHg
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="mt-2 text-xs text-gray-600">PA: no informada</div>
-                  )}
-
-                  <div className="mt-2 text-xs text-gray-600">
-                    Sal añadida:{" "}
-                    <span className="font-semibold">
-                      {extraSalt === "never" ? "No" : extraSalt === "sometimes" ? "A veces" : "Frecuente"}
-                    </span>
-                    {" · "}
-                    Energéticas:{" "}
-                    <span className="font-semibold">
-                      {toNum(energyDrinksPerWeek) === null ? "no informado" : `${toNum(energyDrinksPerWeek)} /sem`}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 text-xs text-gray-600">
-                    Alcohol estimado:{" "}
-                    <span className="font-semibold">
-                      {alcoholLabel(computed.alcohol?.category)} ({computed.alcohol?.drinksPerWeek ?? 0} tragos/sem, atracón:{" "}
-                      {computed.alcohol?.binge === "yes" ? "sí" : "no"})
-                    </span>
-                  </div>
-                </div>
-
-                {/* ✅ Botones removidos de aquí (ahora van al final del paso Resultado) */}
-              </div>
-
-              <div className="mt-3 h-3 w-full rounded-full bg-gray-100 overflow-hidden">
-                <div className="h-full rounded-full bg-gray-900 transition-all" style={{ width: `${computed.score}%` }} />
-              </div>
-
-              {drivers?.length ? (
-                <div className="mt-3 text-sm">
-                  <div className="font-semibold">Lo que más influyó (según lo ingresado)</div>
-                  <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                    {drivers.map((d, i) => (
-                      <li key={i}>{d}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {/* Mini historial (últimas 3) */}
-              {Array.isArray(history) && history.length ? (
-                <div className="mt-4 text-sm">
-                  <div className="font-semibold">Tus últimas mediciones</div>
-                  <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                    {history.slice(0, 3).map((h, i) => (
-                      <li key={i}>
-                        {new Date(h.date).toLocaleDateString()} — {h.score}/100 ({h.level})
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-
-            {/* Acciones */}
-            <div className="rounded-xl border p-4">
-              <div className="font-semibold">Tus 3 acciones prioritarias</div>
-              <div className="mt-3 space-y-2">
-                {actionsWithTips.map((a, i) => (
-                  <div key={i} className="rounded-xl border p-3 bg-white">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-medium">{a.title}</div>
-                      <button
-                        type="button"
-                        onClick={() => setOpenTipIndex(openTipIndex === i ? null : i)}
-                        className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50 transition"
-                      >
-                        {openTipIndex === i ? "Ocultar" : "Ver cómo hacerlo"}
-                      </button>
-                    </div>
-                    {openTipIndex === i ? (
-                      <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                        {a.tips.map((t, idx) => (
-                          <li key={idx}>{t}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
+                  >
+                    {s.title}
+                  </button>
                 ))}
               </div>
-            </div>
+            </section>
 
-            {/* Banderas rojas */}
-            {computed.redFlags?.length ? (
-              <div className="rounded-xl border p-4">
-                <div className="font-semibold text-gray-900">
-                  <Badge>Atención</Badge> <span className="ml-2">Banderas rojas / cuándo consultar</span>
+            {/* STEP 1: Datos */}
+            {step === 0 ? (
+              <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Datos</h2>
+                  <Badge>Opcional = no afecta si está vacío</Badge>
                 </div>
-                <ul className="mt-3 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                  {computed.redFlags.map((m, i) => (
-                    <li key={i}>{m}</li>
-                  ))}
-                </ul>
-              </div>
+
+                {/* Base */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <NumericInput
+                    id="age"
+                    label="Edad"
+                    value={age}
+                    onChange={setAge}
+                    placeholder="Ej: 31"
+                    suffix="años"
+                    warning={computed.warnings?.age}
+                  />
+
+                  <Select
+                    id="sex"
+                    label="Sexo"
+                    value={sex}
+                    onChange={setSex}
+                    options={[
+                      { value: "F", label: "Femenino" },
+                      { value: "M", label: "Masculino" },
+                    ]}
+                  />
+
+                  {/* ✅ Ciudad */}
+                  <TextInput
+                    id="city"
+                    label="Ciudad"
+                    value={city}
+                    onChange={setCity}
+                    placeholder="Ej: Temuco"
+                    hint="Sirve para segmentación (no afecta el score)."
+                  />
+
+                  {/* ✅ Tipo de trabajo */}
+                  <Select
+                    id="jobType"
+                    label="Tipo de trabajo"
+                    value={jobType}
+                    onChange={setJobType}
+                    options={[
+                      { value: "sedentary", label: "Mayormente sedentario" },
+                      { value: "mixed", label: "Mixto" },
+                      { value: "physical", label: "Físico" },
+                    ]}
+                    hint="Para segmentar riesgo laboral (influye suavemente en el score)."
+                  />
+
+                  <NumericInput
+                    id="weight"
+                    label="Peso"
+                    value={weight}
+                    onChange={setWeight}
+                    placeholder="Ej: 66"
+                    suffix="kg"
+                    warning={computed.warnings?.weight}
+                  />
+
+                  <NumericInput
+                    id="height"
+                    label="Talla"
+                    value={height}
+                    onChange={setHeight}
+                    placeholder="Ej: 177 o 1.77"
+                    suffix="cm"
+                    hint="Puedes escribir 1.77 y se interpretará como metros."
+                    warning={computed.warnings?.height}
+                  />
+
+                  <NumericInput
+                    id="waist"
+                    label="Circunferencia de cintura (opcional)"
+                    value={waist}
+                    onChange={setWaist}
+                    placeholder="Si no sabes, déjalo en blanco"
+                    suffix="cm"
+                    hint="Aumenta precisión del resultado."
+                    warning={computed.warnings?.waist}
+                  />
+                </div>
+
+                {/* ✅ Opcional separado con títulos */}
+                <div className="rounded-2xl border p-4 bg-white space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-gray-900">Opcional</div>
+                    <span className="text-xs text-gray-500">Si no lo tienes, el score funciona igual</span>
+                  </div>
+
+                  {/* Presión arterial */}
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-slate-900">Presión arterial</div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <NumericInput
+                        id="bpSys"
+                        label="Sistólica"
+                        value={bpSys}
+                        onChange={setBpSys}
+                        placeholder="Ej: 120"
+                        suffix="mmHg"
+                        hint="Ideal: medir en reposo (5 min), sentado/a."
+                        warning={computed.warnings?.bpSys}
+                      />
+                      <NumericInput
+                        id="bpDia"
+                        label="Diastólica"
+                        value={bpDia}
+                        onChange={setBpDia}
+                        placeholder="Ej: 80"
+                        suffix="mmHg"
+                        hint="Si no la sabes, puedes dejarlo en blanco (no afecta)."
+                        warning={computed.warnings?.bpDia}
+                      />
+                    </div>
+
+                    {computed.bp?.hasBP ? (
+                      <div className="text-xs text-gray-600">
+                        Ingresado:{" "}
+                        <span className="font-semibold">
+                          {computed.bp.sys}/{computed.bp.dia} mmHg
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-600">Si no la conoces, déjalo en blanco. El puntaje funciona igual.</div>
+                    )}
+                  </div>
+
+                  {/* Exámenes de sangre */}
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-slate-900">Exámenes de sangre</div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <NumericInput
+                        id="glucose"
+                        label="Glicemia"
+                        value={glucose}
+                        onChange={setGlucose}
+                        placeholder="Ej: 92"
+                        suffix="mg/dL"
+                        warning={computed.warnings?.glucose}
+                      />
+
+                      <NumericInput
+                        id="hba1c"
+                        label="HbA1c"
+                        value={hba1c}
+                        onChange={setHba1c}
+                        placeholder="Ej: 5.4"
+                        suffix="%"
+                        warning={computed.warnings?.hba1c}
+                      />
+
+                      <NumericInput
+                        id="chol"
+                        label="Colesterol total"
+                        value={cholTotal}
+                        onChange={setCholTotal}
+                        placeholder="Ej: 180"
+                        suffix="mg/dL"
+                        warning={computed.warnings?.chol}
+                      />
+
+                      <NumericInput
+                        id="trig"
+                        label="Triglicéridos"
+                        value={triglycerides}
+                        onChange={setTriglycerides}
+                        placeholder="Ej: 140"
+                        suffix="mg/dL"
+                        warning={computed.warnings?.trig}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {missingList.length ? (
+                  <div className="rounded-xl border p-4">
+                    <div className="font-semibold">Para afinar el resultado (opcional)</div>
+                    <div className="mt-2 text-sm text-gray-700">Puedes agregar: {missingList.map((m) => m.label).join(" · ")}.</div>
+
+                    {computed.missing?.waist ? (
+                      <div className="mt-2 text-xs text-gray-600">
+                        Tip cintura: mide a nivel del ombligo, al final de una espiración, sin apretar la cinta.
+                      </div>
+                    ) : null}
+
+                    <div className="mt-2 text-xs text-gray-600">Si no los tienes, puedes avanzar igual. El puntaje funciona sin estos datos.</div>
+                  </div>
+                ) : null}
+
+                <StepNav />
+              </section>
             ) : null}
 
-            {/* Listas + controles */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border p-4 space-y-4">
-                <div>
-                  <div className="font-semibold">Factores modificables a mejorar</div>
-                  {computed.risksMod?.length ? (
-                    <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                      {computed.risksMod.map((r, i) => (
-                        <li key={i}>{r}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm text-gray-600">No aparecen factores modificables con los datos ingresados.</p>
-                  )}
+            {/* STEP 2: Hábitos */}
+            {step === 1 ? (
+              <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Hábitos</h2>
                 </div>
 
-                <div>
-                  <div className="font-semibold">Condiciones diagnosticadas</div>
-                  {computed.dx?.length ? (
-                    <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                      {computed.dx.map((r, i) => (
-                        <li key={i}>{r}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm text-gray-600">No reporta diagnósticos.</p>
-                  )}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <NumericInput id="breads" label="Pan al día" value={breadsPerDay} onChange={setBreadsPerDay} placeholder="Ej: 2" suffix="unid/día" />
+
+                  <NumericInput
+                    id="sugary"
+                    label="Bebidas azucaradas / dulces"
+                    value={sugaryDrinksPerWeek}
+                    onChange={setSugaryDrinksPerWeek}
+                    placeholder="Ej: 3"
+                    suffix="veces/sem"
+                  />
+
+                  <NumericInput
+                    id="protein"
+                    label="Proteína (aprox.)"
+                    value={proteinServingsPerDay}
+                    onChange={setProteinServingsPerDay}
+                    placeholder="Ej: 2"
+                    suffix="porciones/día"
+                    hint="Ejemplo: 1 porción = 1 huevo + 1 lámina jamón / 1 lata jurel / 1 taza legumbres."
+                  />
+
+                  <Select
+                    id="extraSalt"
+                    label="¿Añades sal extra a la comida?"
+                    value={extraSalt}
+                    onChange={setExtraSalt}
+                    options={[
+                      { value: "never", label: "Nunca" },
+                      { value: "sometimes", label: "A veces" },
+                      { value: "often", label: "Frecuentemente" },
+                    ]}
+                    hint="Ej: agregar sal al plato ya servido."
+                  />
+
+                  <NumericInput
+                    id="energy"
+                    label="Bebidas energéticas"
+                    value={energyDrinksPerWeek}
+                    onChange={setEnergyDrinksPerWeek}
+                    placeholder="Ej: 2"
+                    suffix="veces/sem"
+                    warning={computed.warnings?.energy}
+                  />
+
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Frituras</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        id="friedPeriod"
+                        label="Periodo"
+                        value={friedPeriod}
+                        onChange={setFriedPeriod}
+                        options={[
+                          { value: "week", label: "Por semana" },
+                          { value: "month", label: "Por mes" },
+                        ]}
+                      />
+                      <NumericInput
+                        id="friedCount"
+                        label="Cantidad"
+                        value={friedCount}
+                        onChange={setFriedCount}
+                        placeholder="Ej: 1"
+                        suffix={friedPeriod === "month" ? "veces/mes" : "veces/sem"}
+                        hint="Si lo dejas en blanco, no afecta."
+                      />
+                    </div>
+                  </div>
+
+                  <NumericInput id="sleep" label="Sueño" value={sleepHours} onChange={setSleepHours} placeholder="Ej: 7" suffix="horas/noche" />
+
+                  <NumericInput id="activity" label="Actividad física" value={activityMinutesWeek} onChange={setActivityMinutesWeek} placeholder="Ej: 150" suffix="min/sem" />
+
+                  <Select
+                    id="smoking"
+                    label="Tabaco"
+                    value={smoking}
+                    onChange={setSmoking}
+                    options={[
+                      { value: "no", label: "No" },
+                      { value: "yes", label: "Sí" },
+                    ]}
+                  />
+
+                  {/* Alcohol */}
+                  <div className="space-y-3">
+                    <NumericInput
+                      id="alcoholDrinksPerWeek"
+                      label="Alcohol (tragos estándar)"
+                      value={alcoholDrinksPerWeek}
+                      onChange={setAlcoholDrinksPerWeek}
+                      placeholder="Ej: 2"
+                      suffix="tragos/sem"
+                      hint="1 trago estándar ≈ 1 cerveza lata (350cc) · 1 copa vino (150cc) · 1 medida destilado (45cc)."
+                    />
+
+                    <Select
+                      id="alcoholBinge"
+                      label="¿Atracón (binge) en el último mes?"
+                      value={alcoholBinge}
+                      onChange={setAlcoholBinge}
+                      hint="Atracón ≈ 4+ tragos (mujer) o 5+ (hombre) en una ocasión."
+                      options={[
+                        { value: "no", label: "No" },
+                        { value: "yes", label: "Sí" },
+                      ]}
+                    />
+
+                    <div className="text-xs text-gray-600">
+                      Categoría estimada:{" "}
+                      <span className="font-semibold">
+                        {alcoholLabel(
+                          alcoholCategory({
+                            drinksPerWeek: toNum(alcoholDrinksPerWeek) ?? 0,
+                            binge: alcoholBinge,
+                            sex,
+                          })
+                        )}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                {computed.risksNoMod?.length ? (
-                  <div>
-                    <div className="font-semibold">Riesgos no modificables</div>
-                    <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-                      {computed.risksNoMod.map((r, i) => (
-                        <li key={i}>{r}</li>
+                <StepNav />
+              </section>
+            ) : null}
+
+            {/* STEP 3: Salud */}
+            {step === 2 ? (
+              <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Salud, antecedentes y estrés</h2>
+                  <Badge>Esto ayuda a personalizar</Badge>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Select
+                    id="hasHTN"
+                    label="¿HTA diagnosticada?"
+                    value={hasHTN}
+                    onChange={setHasHTN}
+                    options={[
+                      { value: "no", label: "No" },
+                      { value: "yes", label: "Sí" },
+                    ]}
+                  />
+                  <Select
+                    id="hasDM"
+                    label="¿Diabetes diagnosticada?"
+                    value={hasDM}
+                    onChange={setHasDM}
+                    options={[
+                      { value: "no", label: "No" },
+                      { value: "yes", label: "Sí" },
+                    ]}
+                  />
+                  <Select
+                    id="hasDyslip"
+                    label="¿Dislipidemia diagnosticada?"
+                    value={hasDyslip}
+                    onChange={setHasDyslip}
+                    options={[
+                      { value: "no", label: "No" },
+                      { value: "yes", label: "Sí" },
+                    ]}
+                  />
+                  <Select
+                    id="hasCVD"
+                    label="¿Enfermedad cardiovascular (infarto/ACV)?"
+                    value={hasCVD}
+                    onChange={setHasCVD}
+                    options={[
+                      { value: "no", label: "No" },
+                      { value: "yes", label: "Sí" },
+                    ]}
+                  />
+
+                  {/* ✅ Familiar directo */}
+                  <Select
+                    id="famPrematureCVD"
+                    label="Antecedente familiar CV temprano (familiar directo)"
+                    value={famPrematureCVD}
+                    onChange={setFamPrematureCVD}
+                    options={[
+                      { value: "no", label: "No / no sé" },
+                      { value: "father", label: "Sí — Padre" },
+                      { value: "mother", label: "Sí — Madre" },
+                      { value: "siblings", label: "Sí — Hermanos/as" },
+                    ]}
+                    hint="Ej: infarto/ACV en familiar directo a edad temprana (según relato)."
+                  />
+
+                  <Select
+                    id="thyroidDx"
+                    label="¿Hipo/Hipertiroidismo diagnosticado?"
+                    value={thyroidDx}
+                    onChange={setThyroidDx}
+                    options={[
+                      { value: "none", label: "No" },
+                      { value: "hypo", label: "Hipotiroidismo" },
+                      { value: "hyper", label: "Hipertiroidismo" },
+                    ]}
+                  />
+
+                  <Select
+                    id="chestPain"
+                    label="Dolor/opresión en el pecho"
+                    value={chestPain}
+                    onChange={setChestPain}
+                    options={[
+                      { value: "no", label: "No" },
+                      { value: "yes", label: "Sí" },
+                    ]}
+                  />
+                  <Select
+                    id="easyFatigue"
+                    label="¿Fatiga fácil (más de lo habitual)?"
+                    value={easyFatigue}
+                    onChange={setEasyFatigue}
+                    options={[
+                      { value: "no", label: "No" },
+                      { value: "yes", label: "Sí" },
+                    ]}
+                  />
+                  <Select
+                    id="stressFreq"
+                    label="Estrés (últimas 2 semanas)"
+                    value={stressFreq}
+                    onChange={setStressFreq}
+                    options={[
+                      { value: "never", label: "Rara vez" },
+                      { value: "sometimes", label: "A veces" },
+                      { value: "often", label: "Frecuente" },
+                    ]}
+                  />
+                </div>
+
+                <div className="rounded-xl border p-4">
+                  <div className="font-semibold">Importante</div>
+                  <div className="mt-2 text-sm text-gray-700">
+                    Si tienes <span className="font-semibold">dolor de pecho</span>, falta de aire importante, desmayo,
+                    debilidad súbita o síntomas nuevos intensos, <span className="font-semibold">consulta URGENCIAS</span>.
+                  </div>
+                  <div className="mt-2 text-xs text-gray-600">
+                    *Orientación preventiva. No reemplaza evaluación clínica ni controles de enfermedades crónicas.
+                  </div>
+                </div>
+
+                <StepNav />
+              </section>
+            ) : null}
+
+            {/* STEP 4: Resultado */}
+            {step === 3 ? (
+              <section className="rounded-2xl bg-white p-5 shadow-sm border space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Resultado</h2>
+                  <div className="flex items-center gap-2">
+                    <Badge>{levelChip}</Badge>
+                    {last?.date ? (
+                      <span className="text-xs text-gray-600">
+                        Último: {new Date(last.date).toLocaleDateString()} · {last.score}/100
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Score con barra */}
+                <div className="rounded-xl border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-gray-600">Riesgo estimado</div>
+                      <div className="mt-1 flex items-end gap-3">
+                        <div className="text-3xl font-bold">{computed.score}/100</div>
+                        <div className="text-sm">
+                          Nivel: <span className="font-semibold">{computed.level}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 text-xs text-gray-600">
+                        Tipo de trabajo:{" "}
+                        <span className="font-semibold">
+                          {jobType === "sedentary" ? "Mayormente sedentario" : jobType === "mixed" ? "Mixto" : "Físico"}
+                        </span>
+                        {city ? (
+                          <>
+                            {" · "}Ciudad: <span className="font-semibold">{city}</span>
+                          </>
+                        ) : null}
+                      </div>
+
+                      {computed.bp?.hasBP ? (
+                        <div className="mt-2 text-xs text-gray-600">
+                          PA informada:{" "}
+                          <span className="font-semibold">
+                            {computed.bp.sys}/{computed.bp.dia} mmHg
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-xs text-gray-600">PA: no informada</div>
+                      )}
+
+                      <div className="mt-2 text-xs text-gray-600">
+                        Sal añadida:{" "}
+                        <span className="font-semibold">
+                          {extraSalt === "never" ? "No" : extraSalt === "sometimes" ? "A veces" : "Frecuente"}
+                        </span>
+                        {" · "}
+                        Energéticas:{" "}
+                        <span className="font-semibold">
+                          {toNum(energyDrinksPerWeek) === null ? "no informado" : `${toNum(energyDrinksPerWeek)} /sem`}
+                        </span>
+                        {" · "}
+                        Triglicéridos:{" "}
+                        <span className="font-semibold">
+                          {toNum(triglycerides) === null ? "no informado" : `${toNum(triglycerides)} mg/dL`}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 text-xs text-gray-600">
+                        Alcohol estimado:{" "}
+                        <span className="font-semibold">
+                          {alcoholLabel(computed.alcohol?.category)} ({computed.alcohol?.drinksPerWeek ?? 0} tragos/sem, atracón:{" "}
+                          {computed.alcohol?.binge === "yes" ? "sí" : "no"})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 h-3 w-full rounded-full bg-gray-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-gray-900 transition-all" style={{ width: `${computed.score}%` }} />
+                  </div>
+
+                  {drivers?.length ? (
+                    <div className="mt-3 text-sm">
+                      <div className="font-semibold">Lo que más influyó (según lo ingresado)</div>
+                      <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
+                        {drivers.map((d, i) => (
+                          <li key={i}>{d}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {/* Mini historial (últimas 3) */}
+                  {Array.isArray(history) && history.length ? (
+                    <div className="mt-4 text-sm">
+                      <div className="font-semibold">Tus últimas mediciones</div>
+                      <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
+                        {history.slice(0, 3).map((h, i) => (
+                          <li key={i}>
+                            {new Date(h.date).toLocaleDateString()} — {h.score}/100 ({h.level})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Acciones */}
+                <div className="rounded-xl border p-4">
+                  <div className="font-semibold">Tus 3 acciones prioritarias</div>
+                  <div className="mt-3 space-y-2">
+                    {actionsWithTips.map((a, i) => (
+                      <div key={i} className="rounded-xl border p-3 bg-white">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-medium">{a.title}</div>
+                          <button
+                            type="button"
+                            onClick={() => setOpenTipIndex(openTipIndex === i ? null : i)}
+                            className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50 transition"
+                          >
+                            {openTipIndex === i ? "Ocultar" : "Ver cómo hacerlo"}
+                          </button>
+                        </div>
+                        {openTipIndex === i ? (
+                          <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
+                            {a.tips.map((t, idx) => (
+                              <li key={idx}>{t}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Banderas rojas */}
+                {computed.redFlags?.length ? (
+                  <div className="rounded-xl border p-4">
+                    <div className="font-semibold text-gray-900">
+                      <Badge>Atención</Badge> <span className="ml-2">Banderas rojas / cuándo consultar</span>
+                    </div>
+                    <ul className="mt-3 list-disc pl-5 text-sm text-gray-700 space-y-1">
+                      {computed.redFlags.map((m, i) => (
+                        <li key={i}>{m}</li>
                       ))}
                     </ul>
                   </div>
                 ) : null}
-              </div>
 
-              <div className="rounded-xl border p-4" ref={summaryRef}>
-                <div className="font-semibold">Controles sugeridos (CESFAM)</div>
-                <ul className="mt-3 list-disc pl-5 text-sm space-y-3">
-                  {suggestedControls.map((c) => (
-                    <li key={c.key}>
-                      <div className="font-medium">{c.title}</div>
-                      <div className="text-gray-600">{c.detail}</div>
-                      {c.ask ? <div className="text-gray-700 mt-1">✅ {c.ask}</div> : null}
-                    </li>
-                  ))}
-                </ul>
+                {/* Listas + controles */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-xl border p-4 space-y-4">
+                    <div>
+                      <div className="font-semibold">Factores modificables a mejorar</div>
+                      {computed.risksMod?.length ? (
+                        <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
+                          {computed.risksMod.map((r, i) => (
+                            <li key={i}>{r}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-2 text-sm text-gray-600">No aparecen factores modificables con los datos ingresados.</p>
+                      )}
+                    </div>
 
-                {referencesText ? <div className="mt-3 text-xs text-gray-500">{referencesText}</div> : null}
+                    <div>
+                      <div className="font-semibold">Condiciones diagnosticadas</div>
+                      {computed.dx?.length ? (
+                        <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
+                          {computed.dx.map((r, i) => (
+                            <li key={i}>{r}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-2 text-sm text-gray-600">No reporta diagnósticos.</p>
+                      )}
+                    </div>
 
-                {/* ✅ Botones removidos de aquí (ahora van al final del paso Resultado) */}
-              </div>
-            </div>
+                    {computed.risksNoMod?.length ? (
+                      <div>
+                        <div className="font-semibold">Riesgos no modificables</div>
+                        <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
+                          {computed.risksNoMod.map((r, i) => (
+                            <li key={i}>{r}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
 
-            <p className="mt-2 text-xs text-gray-500">
-              *La frecuencia exacta de algunos tamizajes puede variar por programa local, disponibilidad y criterio clínico en tu CESFAM.
-            </p>
+                  <div className="rounded-xl border p-4" ref={summaryRef}>
+                    <div className="font-semibold">Controles sugeridos (CESFAM)</div>
+                    <ul className="mt-3 list-disc pl-5 text-sm space-y-3">
+                      {suggestedControls.map((c) => (
+                        <li key={c.key}>
+                          <div className="font-medium">{c.title}</div>
+                          <div className="text-gray-600">{c.detail}</div>
+                          {c.ask ? <div className="text-gray-700 mt-1">✅ {c.ask}</div> : null}
+                        </li>
+                      ))}
+                    </ul>
 
-            {/* -------------------- Validación de mercado (al FINAL) -------------------- */}
-            <div className="h-px bg-gray-200 my-2" />
-            <div className="rounded-2xl border p-4 bg-white">
-              <div className="font-semibold text-gray-900">Ayúdanos a mejorar (1 minuto)</div>
-              <p className="mt-1 text-sm text-gray-600">
-                Tus respuestas nos ayudan a mejorar esta herramienta preventiva. La información se utiliza de forma anónima.
+                    {referencesText ? <div className="mt-3 text-xs text-gray-500">{referencesText}</div> : null}
+                  </div>
+                </div>
+
+                <p className="mt-2 text-xs text-gray-500">
+                  *La frecuencia exacta de algunos tamizajes puede variar por programa local, disponibilidad y criterio clínico en tu CESFAM.
+                </p>
+
+                {/* -------------------- Validación de mercado (al FINAL) -------------------- */}
+                <div className="h-px bg-gray-200 my-2" />
+                <div className="rounded-2xl border p-4 bg-white">
+                  <div className="font-semibold text-gray-900">Ayúdanos a mejorar (1 minuto)</div>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Tus respuestas nos ayudan a mejorar esta herramienta preventiva. La información se utiliza de forma anónima.
+                  </p>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    {/* Q1 */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">¿Conocías tu nivel de riesgo antes de esta evaluación?</div>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqAwareness"
+                          value="known"
+                          checked={mvqAwareness === "known"}
+                          onChange={(e) => setMvqAwareness(e.target.value)}
+                        />
+                        Sí, ya lo conocía
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqAwareness"
+                          value="suspected"
+                          checked={mvqAwareness === "suspected"}
+                          onChange={(e) => setMvqAwareness(e.target.value)}
+                        />
+                        Lo sospechaba, pero no estaba seguro(a)
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqAwareness"
+                          value="didntknow"
+                          checked={mvqAwareness === "didntknow"}
+                          onChange={(e) => setMvqAwareness(e.target.value)}
+                        />
+                        No, no lo sabía
+                      </label>
+                    </div>
+
+                    {/* Q2 */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">¿Te gustaría repetir esta evaluación mensualmente para monitorear tu salud?</div>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqMonthly"
+                          value="yes"
+                          checked={mvqMonthly === "yes"}
+                          onChange={(e) => setMvqMonthly(e.target.value)}
+                        />
+                        Sí, definitivamente
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqMonthly"
+                          value="maybe"
+                          checked={mvqMonthly === "maybe"}
+                          onChange={(e) => setMvqMonthly(e.target.value)}
+                        />
+                        Tal vez
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqMonthly"
+                          value="no"
+                          checked={mvqMonthly === "no"}
+                          onChange={(e) => setMvqMonthly(e.target.value)}
+                        />
+                        No por ahora
+                      </label>
+                    </div>
+
+                    {/* Q3 */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">¿Te gustaría recibir recomendaciones personalizadas según tus resultados?</div>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqReco"
+                          value="yes"
+                          checked={mvqReco === "yes"}
+                          onChange={(e) => setMvqReco(e.target.value)}
+                        />
+                        Sí
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqReco"
+                          value="maybe"
+                          checked={mvqReco === "maybe"}
+                          onChange={(e) => setMvqReco(e.target.value)}
+                        />
+                        Tal vez
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqReco"
+                          value="no"
+                          checked={mvqReco === "no"}
+                          onChange={(e) => setMvqReco(e.target.value)}
+                        />
+                        No
+                      </label>
+                    </div>
+
+                    {/* ✅ Q4 nuevo */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">¿Te interesaría que en tu lugar de trabajo se implemente esta evaluación preventiva?</div>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqWorkplace"
+                          value="yes"
+                          checked={mvqWorkplace === "yes"}
+                          onChange={(e) => setMvqWorkplace(e.target.value)}
+                        />
+                        Sí
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqWorkplace"
+                          value="maybe"
+                          checked={mvqWorkplace === "maybe"}
+                          onChange={(e) => setMvqWorkplace(e.target.value)}
+                        />
+                        Tal vez
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          className="h-4 w-4 accent-slate-900"
+                          type="radio"
+                          name="mvqWorkplace"
+                          value="no"
+                          checked={mvqWorkplace === "no"}
+                          onChange={(e) => setMvqWorkplace(e.target.value)}
+                        />
+                        No
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={saveMarketValidation}
+                      className={classNames(
+                        "rounded-xl border px-4 py-2 text-sm transition active:scale-[0.99]",
+                        mvqSaved ? "bg-gray-100 text-gray-500" : "bg-gray-900 text-white hover:opacity-95"
+                      )}
+                      disabled={mvqSaved}
+                    >
+                      {mvqSaved ? "Respuesta guardada ✅" : "Enviar respuestas"}
+                    </button>
+
+                    {!mvqSaved ? (
+                      <span className="text-xs text-gray-600">*Anónimo · No guardamos tu nombre</span>
+                    ) : (
+                      <span className="text-xs text-gray-600">¡Gracias! 💛</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Botones estratégicos al final */}
+                <div className="rounded-2xl border p-4 bg-white">
+                  <div className="font-semibold text-gray-900">Guardar tu resultado</div>
+                  <p className="mt-1 text-sm text-gray-600">Puedes compartir tu resumen o guardarlo como PDF para llevarlo a un control.</p>
+
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={shareSummary}
+                      className="w-full rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-gray-50 transition"
+                    >
+                      Compartir / Copiar resumen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={printPDF}
+                      className="w-full rounded-xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
+                    >
+                      Guardar PDF
+                    </button>
+                  </div>
+                </div>
+
+                <StepNav />
+              </section>
+            ) : null}
+
+            {/* Modal: ¿Cómo se calcula? */}
+            <Modal open={openHow} title="¿Cómo se calcula este resultado?" onClose={() => setOpenHow(false)}>
+              <p>
+                Este MVP suma puntos por <span className="font-semibold">factores de riesgo</span> (por ejemplo IMC alto, cintura alta,
+                presión arterial elevada, sal añadida, baja actividad, tabaco, glicemia/HbA1c elevadas, lípidos/triglicéridos, etc.).
+                A mayor puntaje, mayor prioridad de mejora y control.
               </p>
-
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">¿Conocías tu nivel de riesgo antes de esta evaluación?</div>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      className="h-4 w-4 accent-slate-900"
-                      type="radio"
-                      name="mvqAwareness"
-                      value="known"
-                      checked={mvqAwareness === "known"}
-                      onChange={(e) => setMvqAwareness(e.target.value)}
-                    />
-                    Sí, ya lo conocía
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      className="h-4 w-4 accent-slate-900"
-                      type="radio"
-                      name="mvqAwareness"
-                      value="suspected"
-                      checked={mvqAwareness === "suspected"}
-                      onChange={(e) => setMvqAwareness(e.target.value)}
-                    />
-                    Lo sospechaba, pero no estaba seguro(a)
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      className="h-4 w-4 accent-slate-900"
-                      type="radio"
-                      name="mvqAwareness"
-                      value="didntknow"
-                      checked={mvqAwareness === "didntknow"}
-                      onChange={(e) => setMvqAwareness(e.target.value)}
-                    />
-                    No, no lo sabía
-                  </label>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">¿Te gustaría repetir esta evaluación mensualmente para monitorear tu salud?</div>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      className="h-4 w-4 accent-slate-900"
-                      type="radio"
-                      name="mvqMonthly"
-                      value="yes"
-                      checked={mvqMonthly === "yes"}
-                      onChange={(e) => setMvqMonthly(e.target.value)}
-                    />
-                    Sí, definitivamente
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      className="h-4 w-4 accent-slate-900"
-                      type="radio"
-                      name="mvqMonthly"
-                      value="maybe"
-                      checked={mvqMonthly === "maybe"}
-                      onChange={(e) => setMvqMonthly(e.target.value)}
-                    />
-                    Tal vez
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      className="h-4 w-4 accent-slate-900"
-                      type="radio"
-                      name="mvqMonthly"
-                      value="no"
-                      checked={mvqMonthly === "no"}
-                      onChange={(e) => setMvqMonthly(e.target.value)}
-                    />
-                    No por ahora
-                  </label>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">¿Te gustaría recibir recomendaciones personalizadas según tus resultados?</div>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      className="h-4 w-4 accent-slate-900"
-                      type="radio"
-                      name="mvqReco"
-                      value="yes"
-                      checked={mvqReco === "yes"}
-                      onChange={(e) => setMvqReco(e.target.value)}
-                    />
-                    Sí
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      className="h-4 w-4 accent-slate-900"
-                      type="radio"
-                      name="mvqReco"
-                      value="maybe"
-                      checked={mvqReco === "maybe"}
-                      onChange={(e) => setMvqReco(e.target.value)}
-                    />
-                    Tal vez
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      className="h-4 w-4 accent-slate-900"
-                      type="radio"
-                      name="mvqReco"
-                      value="no"
-                      checked={mvqReco === "no"}
-                      onChange={(e) => setMvqReco(e.target.value)}
-                    />
-                    No
-                  </label>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={saveMarketValidation}
-                  className={classNames(
-                    "rounded-xl border px-4 py-2 text-sm transition active:scale-[0.99]",
-                    mvqSaved ? "bg-gray-100 text-gray-500" : "bg-gray-900 text-white hover:opacity-95"
-                  )}
-                  disabled={mvqSaved}
-                >
-                  {mvqSaved ? "Respuesta guardada ✅" : "Enviar respuestas"}
-                </button>
-
-                {!mvqSaved ? (
-                  <span className="text-xs text-gray-600">*Anónimo · No guardamos tu nombre</span>
-                ) : (
-                  <span className="text-xs text-gray-600">¡Gracias! 💛</span>
-                )}
-              </div>
-            </div>
-
-            {/* ✅ NUEVO: Botones estratégicos al final (debajo de la encuesta) */}
-            <div className="rounded-2xl border p-4 bg-white">
-              <div className="font-semibold text-gray-900">Guardar tu resultado</div>
-              <p className="mt-1 text-sm text-gray-600">
-                Puedes compartir tu resumen o guardarlo como PDF para llevarlo a un control.
+              <p>
+                <span className="font-semibold">Opcionales</span> (cintura, presión arterial y exámenes): si no los ingresas, no se penaliza;
+                solo se vuelve menos preciso.
               </p>
-
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={shareSummary}
-                  className="w-full rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-gray-50 transition"
-                >
-                  Compartir / Copiar resumen
-                </button>
-                <button
-                  type="button"
-                  onClick={printPDF}
-                  className="w-full rounded-xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
-                >
-                  Guardar PDF
-                </button>
-              </div>
-            </div>
-
-            <StepNav />
-          </section>
+              <p>
+                <span className="font-semibold">Importante:</span> no es un diagnóstico. Si tienes enfermedad crónica o síntomas relevantes,
+                lo correcto es evaluación clínica.
+              </p>
+            </Modal>
+          </>
         ) : null}
-
-        {/* Modal: ¿Cómo se calcula? */}
-        <Modal open={openHow} title="¿Cómo se calcula este resultado?" onClose={() => setOpenHow(false)}>
-          <p>
-            Este MVP suma puntos por <span className="font-semibold">factores de riesgo</span> (por ejemplo IMC alto, cintura alta,
-            presión arterial elevada, sal añadida, baja actividad, tabaco, glicemia/HbA1c elevadas, etc.). A mayor puntaje,
-            mayor prioridad de mejora y control.
-          </p>
-          <p>
-            <span className="font-semibold">Opcionales</span> (cintura, presión arterial y exámenes): si no los ingresas, no se penaliza;
-            solo se vuelve menos preciso.
-          </p>
-          <p>
-            <span className="font-semibold">Importante:</span> no es un diagnóstico. Si tienes enfermedad crónica o síntomas relevantes,
-            lo correcto es evaluación clínica.
-          </p>
-        </Modal>
       </div>
     </main>
   );
