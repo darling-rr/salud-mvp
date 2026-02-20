@@ -359,49 +359,49 @@ async function guardarEvaluacion({
   ua_hash,
 }) {
   const session_id = sessionIdRef.current ?? getOrCreateSessionId();
-  const user_agent =
-    typeof navigator !== "undefined" ? navigator.userAgent : null;
+  const user_agent = typeof navigator !== "undefined" ? navigator.userAgent : null;
 
-  // ✅ Normaliza strings vacíos a NULL (evita error 400 por CHECK constraints)
   const toNull = (v) => (v === "" || v === undefined ? null : v);
 
-  const payload = {
-    answers,
-    score,
-    risk_level: riskLevel,
-
-    // ✅ Consentimiento respaldado en DB
-    consent_accepted: consentAccepted === true,
-    consent_version: consentVersion ?? "short_v1",
-
-    // ✅ MVQ normalizados
-    mvq_awareness: toNull(mvqAwareness),
-    mvq_monthly: toNull(mvqMonthly),
-    mvq_reco: toNull(mvqReco),
-    mvq_workplace: toNull(mvqWorkplace),
-
-    // tracking técnico
-    session_id,
-    user_agent,
-    ip_hash,
-    ua_hash,
+  // ✅ Metemos consentimiento + MVQ dentro de answers (para evitar 400 si no existen columnas mvq_* o consent_*)
+  const safeAnswers = {
+    ...answers,
+    consentAccepted: consentAccepted === true,
+    consentVersion: consentVersion ?? "short_v1",
+    mvqAwareness: toNull(mvqAwareness),
+    mvqMonthly: toNull(mvqMonthly),
+    mvqReco: toNull(mvqReco),
+    mvqWorkplace: toNull(mvqWorkplace),
   };
 
-  const { data, error } = await supabase
-    .from("assessments")
-    .insert([payload])
-    .select();
+  // ✅ Payload mínimo “seguro” (solo columnas que casi seguro tienes)
+  const payload = {
+    answers: safeAnswers,
+    score,
+    risk_level: riskLevel,
+    session_id,
+    user_agent,
+    ip_hash: ip_hash ?? null,
+    ua_hash: ua_hash ?? null,
+  };
+
+  // ✅ CLAVE: NO usar .select() para no requerir policy SELECT.
+  // returning:'minimal' evita devolver filas.
+  const { error } = await supabase.from("assessments").insert(payload, { returning: "minimal" });
 
   if (error) {
-    console.error("❌ Supabase insert error:", error);
+    console.error("❌ SUPABASE INSERT ERROR:", error);
+    console.error("❌ message:", error.message);
+    console.error("❌ details:", error.details);
+    console.error("❌ hint:", error.hint);
+    console.error("❌ code:", error.code);
     console.error("Payload enviado:", payload);
     return { ok: false, error };
   }
 
-  console.log("✅ Supabase insert ok:", data?.[0]);
-  return { ok: true, data };
+  console.log("✅ Supabase insert ok (minimal)");
+  return { ok: true };
 }
-
   // Refs para scroll
   const topRef = useRef(null);
   const summaryRef = useRef(null);
@@ -1121,159 +1121,155 @@ async function guardarEvaluacion({
   }, []);
 
   // ✅ Guardar SOLO al llegar a “Resultado”
-  useEffect(() => {
-    if (!consentAccepted) return;
+useEffect(() => {
+  if (!consentAccepted) return;
 
-    if (step !== 3) {
-      savedForThisResultRef.current = false;
-      savedToSupabaseRef.current = false; // reset para el próximo resultado
-      return;
-    }
-    if (savedForThisResultRef.current) return;
-    savedForThisResultRef.current = true;
-
-    // 1) Guardar local
-    try {
-      const payload = {
-        date: new Date().toISOString(),
-        score: computed.score,
-        level: computed.level,
-      };
-
-      localStorage.setItem("cm_last", JSON.stringify(payload));
-      setLast(payload);
-
-      setHistory((prev) => {
-        const prevArr = Array.isArray(prev) ? prev : [];
-        const next = [payload, ...prevArr].slice(0, 12);
-        try {
-          localStorage.setItem("cm_history", JSON.stringify(next));
-        } catch {}
-        return next;
-      });
-    } catch {}
-
-    // 2) Guardar Supabase (una vez por resultado)
-// 2) Guardar Supabase (una vez por resultado)
-(async () => {
-  if (savedToSupabaseRef.current) return;
-  savedToSupabaseRef.current = true;
-
-  console.log("🧪 Intentando guardar en Supabase desde step 3");
-
-  const answers = {
-    consentAccepted: true,
-    age,
-    sex,
-    city,
-    jobType,
-    weight,
-    height,
-    waist,
-    bpSys,
-    bpDia,
-    glucose,
-    hba1c,
-    cholTotal,
-    triglycerides,
-    breadsPerDay,
-    sugaryDrinksPerWeek,
-    proteinServingsPerDay,
-    extraSalt,
-    energyDrinksPerWeek,
-    friedPeriod,
-    friedCount,
-    sleepHours,
-    activityMinutesWeek,
-    smoking,
-    alcoholDrinksPerWeek,
-    alcoholBinge,
-    hasHTN,
-    hasDM,
-    hasDyslip,
-    hasCVD,
-    famPrematureCVD,
-    thyroidDx,
-    chestPain,
-    easyFatigue,
-    stressFreq,
-  };
-
-  const res = await guardarEvaluacion({
-    answers,
-    score: computed.score,
-    riskLevel: computed.level,
-
-    // ✅ consentimiento guardado en DB
-    consentAccepted: true,
-    consentVersion: "short_v1",
-
-    // ✅ MVQ (si están vacíos se convertirán en NULL)
-    mvqAwareness,
-    mvqMonthly,
-    mvqReco,
-    mvqWorkplace,
-
-    ip_hash: fp.ip_hash,
-    ua_hash: fp.ua_hash,
-  });
-
-  if (!res.ok) {
-    console.error("❌ Supabase insert error:", res.error);
-  } else {
-    console.log("✅ Supabase insert ok:", res.data?.[0]);
-    if (res.data?.[0]?.id) {
-      localStorage.setItem("cm_last_assessment_id", res.data[0].id);
-    }
+  // Si no estamos en Resultado, reseteamos flags para permitir nuevo guardado
+  if (step !== 3) {
+    savedForThisResultRef.current = false;
+    savedToSupabaseRef.current = false;
+    return;
   }
-})();
 
-  }, [
-    consentAccepted,
-    step,
-    computed.score,
-    computed.level,
-    age,
-    sex,
-    city,
-    jobType,
-    weight,
-    height,
-    waist,
-    bpSys,
-    bpDia,
-    glucose,
-    hba1c,
-    cholTotal,
-    triglycerides,
-    breadsPerDay,
-    sugaryDrinksPerWeek,
-    proteinServingsPerDay,
-    extraSalt,
-    energyDrinksPerWeek,
-    friedPeriod,
-    friedCount,
-    sleepHours,
-    activityMinutesWeek,
-    smoking,
-    alcoholDrinksPerWeek,
-    alcoholBinge,
-    hasHTN,
-    hasDM,
-    hasDyslip,
-    hasCVD,
-    famPrematureCVD,
-    thyroidDx,
-    chestPain,
-    easyFatigue,
-    stressFreq,
-    mvqAwareness,
-    mvqMonthly,
-    mvqReco,
-    mvqWorkplace,
-    fp.ip_hash,
-    fp.ua_hash,
-  ]);
+  // Evita doble guardado en el mismo resultado
+  if (savedForThisResultRef.current) return;
+  savedForThisResultRef.current = true;
+
+  // 1) Guardar local
+  try {
+    const localPayload = {
+      date: new Date().toISOString(),
+      score: computed.score,
+      level: computed.level,
+    };
+
+    localStorage.setItem("cm_last", JSON.stringify(localPayload));
+    setLast(localPayload);
+
+    setHistory((prev) => {
+      const prevArr = Array.isArray(prev) ? prev : [];
+      const next = [localPayload, ...prevArr].slice(0, 12);
+      try {
+        localStorage.setItem("cm_history", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  } catch {}
+
+  // 2) Guardar Supabase (una vez por resultado)
+  (async () => {
+    if (savedToSupabaseRef.current) return;
+    savedToSupabaseRef.current = true;
+
+    console.log("🧪 Intentando guardar en Supabase desde step 3");
+
+    const answers = {
+      consentAccepted: true,
+      age,
+      sex,
+      city,
+      jobType,
+      weight,
+      height,
+      waist,
+      bpSys,
+      bpDia,
+      glucose,
+      hba1c,
+      cholTotal,
+      triglycerides,
+      breadsPerDay,
+      sugaryDrinksPerWeek,
+      proteinServingsPerDay,
+      extraSalt,
+      energyDrinksPerWeek,
+      friedPeriod,
+      friedCount,
+      sleepHours,
+      activityMinutesWeek,
+      smoking,
+      alcoholDrinksPerWeek,
+      alcoholBinge,
+      hasHTN,
+      hasDM,
+      hasDyslip,
+      hasCVD,
+      famPrematureCVD,
+      thyroidDx,
+      chestPain,
+      easyFatigue,
+      stressFreq,
+    };
+
+    const res = await guardarEvaluacion({
+      answers,
+      score: computed.score,
+      riskLevel: computed.level,
+
+      consentAccepted: true,
+      consentVersion: "short_v1",
+
+      mvqAwareness,
+      mvqMonthly,
+      mvqReco,
+      mvqWorkplace,
+
+      ip_hash: fp.ip_hash,
+      ua_hash: fp.ua_hash,
+    });
+
+    if (!res.ok) {
+      console.error("❌ Supabase insert error:", res.error);
+    } else {
+      console.log("✅ Supabase insert ok");
+    }
+  })();
+}, [
+  consentAccepted,
+  step,
+  computed.score,
+  computed.level,
+  age,
+  sex,
+  city,
+  jobType,
+  weight,
+  height,
+  waist,
+  bpSys,
+  bpDia,
+  glucose,
+  hba1c,
+  cholTotal,
+  triglycerides,
+  breadsPerDay,
+  sugaryDrinksPerWeek,
+  proteinServingsPerDay,
+  extraSalt,
+  energyDrinksPerWeek,
+  friedPeriod,
+  friedCount,
+  sleepHours,
+  activityMinutesWeek,
+  smoking,
+  alcoholDrinksPerWeek,
+  alcoholBinge,
+  hasHTN,
+  hasDM,
+  hasDyslip,
+  hasCVD,
+  famPrematureCVD,
+  thyroidDx,
+  chestPain,
+  easyFatigue,
+  stressFreq,
+  mvqAwareness,
+  mvqMonthly,
+  mvqReco,
+  mvqWorkplace,
+  fp.ip_hash,
+  fp.ua_hash,
+]);
 
   // Reset de encuesta cuando entras a Resultado (para que pueda responder de nuevo)
   useEffect(() => {
@@ -1355,56 +1351,36 @@ async function guardarEvaluacion({
     }
   };
 
-  const saveMarketValidation = async () => {
-    if (!mvqAwareness || !mvqMonthly || !mvqReco || !mvqWorkplace) {
-      alert("Porfa responde todas las preguntas 🙂");
-      return;
-    }
+ const saveMarketValidation = async () => {
+  if (!mvqAwareness || !mvqMonthly || !mvqReco || !mvqWorkplace) {
+    alert("Porfa responde todas las preguntas 🙂");
+    return;
+  }
 
-    // guarda local
-    try {
-      const payload = {
-        date: new Date().toISOString(),
-        score: computed.score,
-        level: computed.level,
-        awareness: mvqAwareness,
-        monthly: mvqMonthly,
-        recommendations: mvqReco,
-        workplace: mvqWorkplace,
-      };
+  // ✅ Guarda local (siempre)
+  try {
+    const payload = {
+      date: new Date().toISOString(),
+      score: computed.score,
+      level: computed.level,
+      awareness: mvqAwareness,
+      monthly: mvqMonthly,
+      recommendations: mvqReco,
+      workplace: mvqWorkplace,
+    };
 
-      const raw = localStorage.getItem("cm_market_validation");
-      const prev = raw ? JSON.parse(raw) : [];
-      const next = [payload, ...(Array.isArray(prev) ? prev : [])].slice(0, 300);
-      localStorage.setItem("cm_market_validation", JSON.stringify(next));
-    } catch {}
+    const raw = localStorage.getItem("cm_market_validation");
+    const prev = raw ? JSON.parse(raw) : [];
+    const next = [payload, ...(Array.isArray(prev) ? prev : [])].slice(0, 300);
+    localStorage.setItem("cm_market_validation", JSON.stringify(next));
+  } catch {}
 
-    // ✅ guardar en supabase (update a la última evaluación)
-    try {
-      const id = localStorage.getItem("cm_last_assessment_id");
-
-      if (!supabase) throw new Error("supabase_not_configured");
-      if (!id) throw new Error("missing_assessment_id");
-
-      const { error } = await supabase
-        .from("assessments")
-        .update({
-          mvq_awareness: mvqAwareness,
-          mvq_monthly: mvqMonthly,
-          mvq_reco: mvqReco,
-          mvq_workplace: mvqWorkplace,
-        })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setMvqSaved(true);
-    } catch (e) {
-      console.error("No se pudo guardar MVQ en Supabase:", e);
-      // igual marcamos como guardado localmente para no molestar al usuario
-      setMvqSaved(true);
-    }
-  };
+  // ✅ Por ahora, no hacemos UPDATE en Supabase (porque ya no dependemos de ID)
+  // Si quieres guardarlo en DB igual, lo correcto es:
+  // - crear tabla market_validation
+  // - insertar con session_id (sin update)
+  setMvqSaved(true);
+};
 
   const printPDF = () => {
     const text = buildSummaryText().replace(/\n/g, "<br/>");
