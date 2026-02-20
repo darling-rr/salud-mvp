@@ -345,8 +345,7 @@ export default function CardioMetabolicApp() {
     })();
   }, []);
 
-  // ✅ Función real para guardar
-  async function guardarEvaluacion({
+async function guardarEvaluacion({
   answers,
   score,
   riskLevel,
@@ -354,41 +353,52 @@ export default function CardioMetabolicApp() {
   mvqMonthly,
   mvqReco,
   mvqWorkplace,
-  consentAccepted,     // ✅ nuevo
-  consentVersion,      // ✅ nuevo (opcional)
+  consentAccepted,
+  consentVersion,
   ip_hash,
   ua_hash,
 }) {
   const session_id = sessionIdRef.current ?? getOrCreateSessionId();
-  const user_agent = typeof navigator !== "undefined" ? navigator.userAgent : null;
+  const user_agent =
+    typeof navigator !== "undefined" ? navigator.userAgent : null;
+
+  // ✅ Normaliza strings vacíos a NULL (evita error 400 por CHECK constraints)
+  const toNull = (v) => (v === "" || v === undefined ? null : v);
+
+  const payload = {
+    answers,
+    score,
+    risk_level: riskLevel,
+
+    // ✅ Consentimiento respaldado en DB
+    consent_accepted: consentAccepted === true,
+    consent_version: consentVersion ?? "short_v1",
+
+    // ✅ MVQ normalizados
+    mvq_awareness: toNull(mvqAwareness),
+    mvq_monthly: toNull(mvqMonthly),
+    mvq_reco: toNull(mvqReco),
+    mvq_workplace: toNull(mvqWorkplace),
+
+    // tracking técnico
+    session_id,
+    user_agent,
+    ip_hash,
+    ua_hash,
+  };
 
   const { data, error } = await supabase
     .from("assessments")
-    .insert([
-      {
-        answers,
-        score,
-        risk_level: riskLevel,
-
-        // ✅ Consentimiento: queda respaldado en DB
-        consent_accepted: consentAccepted === true,
-        consent_version: consentVersion ?? "short_v1",
-
-        // ✅ MVQ: si aún no se responde, se guarda como NULL (no “EMPTY”)
-        mvq_awareness: mvqAwareness ? mvqAwareness : null,
-        mvq_monthly: mvqMonthly ? mvqMonthly : null,
-        mvq_reco: mvqReco ? mvqReco : null,
-        mvq_workplace: mvqWorkplace ? mvqWorkplace : null, // ✅ si no existe columna, fallará y se verá en console
-
-        session_id,
-        user_agent,
-        ip_hash,
-        ua_hash,
-      },
-    ])
+    .insert([payload])
     .select();
 
-  if (error) return { ok: false, error };
+  if (error) {
+    console.error("❌ Supabase insert error:", error);
+    console.error("Payload enviado:", payload);
+    return { ok: false, error };
+  }
+
+  console.log("✅ Supabase insert ok:", data?.[0]);
   return { ok: true, data };
 }
 
@@ -1144,73 +1154,80 @@ export default function CardioMetabolicApp() {
     } catch {}
 
     // 2) Guardar Supabase (una vez por resultado)
-    (async () => {
-      if (savedToSupabaseRef.current) return;
-      savedToSupabaseRef.current = true;
+// 2) Guardar Supabase (una vez por resultado)
+(async () => {
+  if (savedToSupabaseRef.current) return;
+  savedToSupabaseRef.current = true;
 
-      console.log("🧪 Intentando guardar en Supabase desde step 3");
+  console.log("🧪 Intentando guardar en Supabase desde step 3");
 
-      const answers = {
-        consentAccepted: true,
-        age,
-        sex,
-        city,
-        jobType,
-        weight,
-        height,
-        waist,
-        bpSys,
-        bpDia,
-        glucose,
-        hba1c,
-        cholTotal,
-        triglycerides,
-        breadsPerDay,
-        sugaryDrinksPerWeek,
-        proteinServingsPerDay,
-        extraSalt,
-        energyDrinksPerWeek,
-        friedPeriod,
-        friedCount,
-        sleepHours,
-        activityMinutesWeek,
-        smoking,
-        alcoholDrinksPerWeek,
-        alcoholBinge,
-        hasHTN,
-        hasDM,
-        hasDyslip,
-        hasCVD,
-        famPrematureCVD,
-        thyroidDx,
-        chestPain,
-        easyFatigue,
-        stressFreq,
-      };
+  const answers = {
+    consentAccepted: true,
+    age,
+    sex,
+    city,
+    jobType,
+    weight,
+    height,
+    waist,
+    bpSys,
+    bpDia,
+    glucose,
+    hba1c,
+    cholTotal,
+    triglycerides,
+    breadsPerDay,
+    sugaryDrinksPerWeek,
+    proteinServingsPerDay,
+    extraSalt,
+    energyDrinksPerWeek,
+    friedPeriod,
+    friedCount,
+    sleepHours,
+    activityMinutesWeek,
+    smoking,
+    alcoholDrinksPerWeek,
+    alcoholBinge,
+    hasHTN,
+    hasDM,
+    hasDyslip,
+    hasCVD,
+    famPrematureCVD,
+    thyroidDx,
+    chestPain,
+    easyFatigue,
+    stressFreq,
+  };
 
-      const res = await guardarEvaluacion({
-  answers,
-  score: computed.score,
-  riskLevel: computed.level,
+  const res = await guardarEvaluacion({
+    answers,
+    score: computed.score,
+    riskLevel: computed.level,
 
-  // ✅ consentimiento respaldado en Supabase
-  consentAccepted: true,
-  consentVersion: "short_v1",
+    // ✅ consentimiento guardado en DB
+    consentAccepted: true,
+    consentVersion: "short_v1",
 
-  // ✅ MVQ puede ir vacío aquí, se guardará NULL y luego se actualiza en el update
-  mvqAwareness,
-  mvqMonthly,
-  mvqReco,
-  mvqWorkplace,
+    // ✅ MVQ (si están vacíos se convertirán en NULL)
+    mvqAwareness,
+    mvqMonthly,
+    mvqReco,
+    mvqWorkplace,
 
-  ip_hash: fp.ip_hash,
-  ua_hash: fp.ua_hash,
-});
+    ip_hash: fp.ip_hash,
+    ua_hash: fp.ua_hash,
+  });
 
-      if (res.ok && res.data?.[0]?.id) {
-        localStorage.setItem("cm_last_assessment_id", res.data[0].id);
-      }
-    })();
+  if (!res.ok) {
+    console.error("❌ Supabase insert error:", res.error);
+  } else {
+    console.log("✅ Supabase insert ok:", res.data?.[0]);
+    if (res.data?.[0]?.id) {
+      localStorage.setItem("cm_last_assessment_id", res.data[0].id);
+    }
+  }
+})();
+
   }, [
     consentAccepted,
     step,
