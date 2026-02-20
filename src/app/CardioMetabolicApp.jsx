@@ -255,7 +255,7 @@ export default function CardioMetabolicApp() {
   // Seguimiento simple (localStorage) — guardar SOLO al llegar a resultado
   const [last, setLast] = useState(null);
   const [history, setHistory] = useState([]);
-  const savedForThisResultRef = useRef(false);
+  const savedForThisResultRef = useRef(null);
 
   // ✅ Guardado en Supabase “una vez por resultado”
   const savedToSupabaseRef = useRef(false);
@@ -1137,8 +1137,9 @@ useEffect(() => {
   }
 
   // Evita doble guardado en el mismo resultado
-  if (savedForThisResultRef.current) return;
-  savedForThisResultRef.current = true;
+const resultKey = `${computed.score}-${computed.level}-${step}`;
+if (savedForThisResultRef.current === resultKey) return;
+savedForThisResultRef.current = resultKey;
 
   // 1) Guardar local
   try {
