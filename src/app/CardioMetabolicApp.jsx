@@ -1538,7 +1538,7 @@ export default function CardioMetabolicApp() {
             </div>
 
             <div className="rounded-xl border p-4">
-              <div className="font-semibold text-gray-900">✅ Consentimiento informado — versión corta (MVP)</div>
+              <div className="font-semibold text-gray-900">✅ Consentimiento informado </div>
               <div className="mt-2 text-sm text-gray-700 space-y-2">
                 <p>Esta evaluación es preventiva y educativa.</p>
                 <p>No entrega diagnósticos médicos ni reemplaza una consulta profesional.</p>
